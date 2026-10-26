@@ -84,6 +84,6 @@ The test creates two throwaway host accounts and an event, answers it from a sep
 - Free hosting tiers have limits and some are for non-commercial use only. Check your host's terms before running a paid service on it.
 - Hazir sends no messages. WhatsApp buttons open WhatsApp with a prefilled text for you to send.
 
-## Licence
+## License
 
 The code is source-available: you may read, run, copy and modify it for any purpose, but you may not sell it or a modified copy of it. The exact licence text is being finalised and will be added as `LICENSE`. Until it is, all rights stay with the author.
