@@ -109,3 +109,60 @@ grant select, insert, update, delete on public.events, public.invitees, public.r
 
 -- For projects created before check-in existed:
 alter table public.responses add column if not exists checked_in boolean not null default false;
+
+-- Migration 2: exact deadline time with timezone, venue, guest message, manual close
+alter table public.events
+  add column if not exists deadline_at timestamptz,
+  add column if not exists tz text not null default 'Asia/Kolkata',
+  add column if not exists venue text check (char_length(venue) <= 120),
+  add column if not exists message text check (char_length(message) <= 300),
+  add column if not exists rsvp_closed boolean not null default false;
+
+create or replace function public.rsvp_is_closed(e public.events) returns boolean
+language sql stable as $$
+  select e.rsvp_closed
+    or (e.deadline_at is not null and e.deadline_at <= now())
+    or (e.deadline_at is null and e.deadline is not null and e.deadline < current_date);
+$$;
+
+create or replace function public.get_invite(p_event text, p_token text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare e events; inv invitees; done boolean := false;
+begin
+  select * into e from events where id = p_event;
+  if not found then return null; end if;
+  if p_token is not null then
+    select * into inv from invitees where event_id = e.id and token = p_token;
+    if found then select exists(select 1 from responses where invitee_id = inv.id) into done; end if;
+  end if;
+  return jsonb_build_object('id', e.id, 'title', e.title, 'occasion', e.occasion, 'date', e.event_date,
+    'host', e.host_name, 'deadline', e.deadline, 'deadline_at', e.deadline_at, 'tz', e.tz,
+    'venue', e.venue, 'message', e.message, 'max', e.max_party, 'time', e.default_time,
+    'invitee_name', inv.name, 'answered', done, 'closed', public.rsvp_is_closed(e));
+end $$;
+
+create or replace function public.submit_rsvp(p_event text, p_token text, p_name text, p_attending boolean,
+  p_grp text, p_meal text, p_party int, p_arrival int, p_comp jsonb, p_note text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare e events; inv invitees; cnt int;
+begin
+  select * into e from events where id = p_event;
+  if not found then raise exception 'Event not found'; end if;
+  if public.rsvp_is_closed(e) then raise exception 'RSVPs are closed'; end if;
+  if p_token is not null and p_token <> '' then
+    select * into inv from invitees where event_id = e.id and token = p_token;
+    if not found then raise exception 'This invitation link is not valid'; end if;
+  end if;
+  select count(*) into cnt from responses where event_id = e.id;
+  if cnt >= 6000 then raise exception 'This event is full'; end if;
+  if inv.id is not null then delete from responses where invitee_id = inv.id; end if;
+  insert into responses(event_id, invitee_id, name, attending, grp, meal, party, arrival, companions, note)
+  values (e.id, inv.id, left(coalesce(nullif(trim(p_name), ''), inv.name, 'Guest'), 40), p_attending,
+    left(p_grp, 20), left(p_meal, 20),
+    case when p_attending then least(e.max_party, greatest(1, p_party)) else 0 end,
+    case when p_attending then p_arrival else null end,
+    case when jsonb_typeof(p_comp) = 'array' then p_comp else '[]'::jsonb end, left(p_note, 120));
+  return jsonb_build_object('ok', true);
+end $$;
+revoke all on function public.rsvp_is_closed(public.events) from public;
+grant execute on function public.rsvp_is_closed(public.events) to anon, authenticated;

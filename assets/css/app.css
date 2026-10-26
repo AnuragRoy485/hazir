@@ -61,3 +61,29 @@
  .trow{grid-template-columns:1fr auto;gap:6px 10px}.thead{display:none}.trow>span:nth-child(3),.trow>span:nth-child(4),.trow>span:nth-child(5){display:inline;font-size:13px;color:var(--mut)}.trow .acts{grid-column:1/-1;justify-content:flex-start}}
 @media(max-width:560px){.two,.comp{grid-template-columns:1fr}.stats5.s3 .stat b{font-size:30px}.stat{padding:14px}}
 .yb{text-transform:none;letter-spacing:0;font-family:inherit}.stepper button{background:#fff;color:#000}
+
+/* Confirmation dialog */
+body.noscroll{overflow:hidden}
+.modal-wrap{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;opacity:0;transition:opacity .22s var(--ease)}.modal-wrap.in{opacity:1}
+.dlg-bg{position:absolute;inset:0;background:rgba(255,255,255,.72);backdrop-filter:blur(8px)}
+.dlg{position:relative;width:min(460px,100%);background:#fff;border:1.5px solid #000;border-radius:28px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.18);transform:translateY(14px) scale(.98);transition:transform .3s var(--ease)}
+.modal-wrap.in .dlg{transform:none}.dlg h3{font-size:26px;font-weight:400;margin-bottom:10px}.dlg .muted{line-height:1.5}
+.dlg .kw{color:#000;letter-spacing:.04em}.dlg input{width:100%;margin-top:8px}.row.end{justify-content:flex-end;margin-top:22px}
+.dlg button:disabled{opacity:.35;cursor:not-allowed}
+/* View toggle, next up */
+.vtoggle{display:inline-flex;border:1.5px solid #000;border-radius:999px;padding:3px;margin-bottom:18px}
+.vt{border:0;background:none;font:inherit;padding:8px 20px;border-radius:999px;cursor:pointer;transition:background .25s,color .25s}.vt.on{background:#000;color:#fff}
+.nextup{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;border:1.5px solid #000;border-radius:20px;padding:16px 22px;margin-bottom:18px}.nextup small{letter-spacing:.14em;color:var(--mut)}.nextup b{font-size:22px;font-weight:400}.nextup span{color:var(--mut)}
+/* Calendar */
+.calc{padding:clamp(16px,3vw,32px)}.chead{display:flex;align-items:center;gap:10px;margin-bottom:18px}.chead h3{flex:1;font-size:clamp(22px,3vw,30px);font-weight:400;text-align:center}
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.cdow small{text-align:center;letter-spacing:.1em;color:var(--mut);font-size:12px;padding-bottom:6px;text-transform:uppercase}
+.cd{position:relative;height:72px}.cb{width:100%;height:100%;border:1px solid var(--line);border-radius:14px;background:#fff;font:inherit;cursor:pointer;position:relative;transition:border-color .2s,background .2s,transform .2s var(--ease)}
+.cb:hover{border-color:#000;transform:translateY(-2px)}.cd.today .cb{border:1.5px solid #000}.cd.has .cb{background:#000;color:#fff}.cd.sel .cb{outline:2px solid #000;outline-offset:2px}
+.cb i{position:absolute;right:6px;top:4px;font-size:11px;font-style:normal}
+.ctip{position:absolute;z-index:20;top:calc(100% + 6px);width:min(260px,70vw);background:#fff;color:#000;border:1.5px solid #000;border-radius:18px;padding:14px 16px;box-shadow:0 20px 50px rgba(0,0,0,.15);opacity:0;visibility:hidden;transform:translateY(6px);transition:all .22s var(--ease);pointer-events:none}
+.ctip.l{left:0}.ctip.r{right:0}.cd:hover .ctip,.cd:focus-within .ctip{opacity:1;visibility:visible;transform:none}
+.ti{display:flex;flex-direction:column;gap:2px;font-size:14px}.ti+.ti{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}.ti b{font-weight:400;font-size:17px}.ti span{color:var(--mut)}
+.cday{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}.cday h4{margin-bottom:10px}.crow{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;border:1px solid var(--line);border-radius:14px;background:#fff;padding:12px 16px;margin-bottom:8px;font:inherit;cursor:pointer;transition:border-color .2s}.crow:hover{border-color:#000}.crow span{color:var(--mut)}
+.gmsg{margin:14px 0;padding:14px 18px;border-left:3px solid #000;background:var(--soft);border-radius:0 14px 14px 0;line-height:1.5}
+@media(max-width:560px){.cgrid{gap:4px}.cd{height:52px}.crow{flex-direction:column}}
+[hidden]{display:none!important}

@@ -1,7 +1,7 @@
 // Hazir guest page: sees only event title, date and deadline; answers via a locked server function. */
 import { rpc } from '../lib/db.js';
 import { $, $$, initEffects } from '../lib/ui.js';
-import { esc, fmtTime, fmtDate, MEALS, GROUPS } from '../lib/format.js';
+import { esc, fmtTime, fmtDate, fmtDeadline, MEALS, GROUPS } from '../lib/format.js';
 
 const root=$('#root'),q=new URLSearchParams(location.search),eid=q.get('e'),tok=q.get('t')||'';
 initEffects();
@@ -11,12 +11,12 @@ const msgCard=(h,p)=>root.innerHTML=`<div class="card reveal in center"><h2>${h}
   let ev;try{ev=await rpc('get_invite',{p_event:eid,p_token:tok||null})}catch(e){return msgCard('Something went wrong.','Please check your connection and try again.')}
   if(!ev)return msgCard('Invitation not found.','This event may have been removed. Ask your host for a fresh link.');
   document.title=ev.title+' - RSVP';
-  const head=`<p class="eyebrow">${esc(ev.occasion)}</p><h1 class="gh">${esc(ev.title)}</h1><p class="lead">${fmtDate(ev.date)}${ev.host?' &middot; hosted by '+esc(ev.host):''}</p>`;
+  const head=`<p class="eyebrow">${esc(ev.occasion)}</p><h1 class="gh">${esc(ev.title)}</h1><p class="lead">${fmtDate(ev.date)}${ev.host?' &middot; hosted by '+esc(ev.host):''}</p>${ev.venue?`<p class="muted">${esc(ev.venue)}</p>`:''}${ev.message?`<p class="gmsg">${esc(ev.message)}</p>`:''}`;
   if(ev.closed)return root.innerHTML=`<div class="card reveal in">${head}<div class="msg">RSVPs for this event are closed. Please contact your host directly.</div></div>`;
   let att=true,party=1,arrival=ev.time,comps=[];
   const draw=()=>{
     root.innerHTML=`<div class="card reveal in">${head}${ev.invitee_name?`<p class="hello">Hello, <b>${esc(ev.invitee_name)}</b>.${ev.answered?' You have already answered. Sending again updates your answer.':''}</p>`:''}
-    ${ev.deadline?`<p class="fine">Please answer by ${fmtDate(ev.deadline)}.</p>`:''}
+    ${ev.deadline_at?`<p class="fine">Please answer by ${fmtDeadline(ev.deadline_at,ev.tz)}.</p>`:ev.deadline?`<p class="fine">Please answer by ${fmtDate(ev.deadline)}.</p>`:''}
     <form id="f" novalidate>
       <div class="yn"><button type="button" class="yb ${att?'on':''}" data-a="1">Yes, I will be there</button><button type="button" class="yb ${!att?'on':''}" data-a="0">Sorry, I cannot</button></div>
       ${ev.invitee_name?'':'<label class="field">Your name<input id="n" maxlength="40" autocomplete="name" required></label>'}

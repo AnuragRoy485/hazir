@@ -18,6 +18,9 @@ Hazir asks the three questions a host needs answered: **are you coming, how many
 Host (signed in with email and password):
 
 - Sign up, log in, log out. Each host sees only their own events.
+- Calendar view of all events: days with events are marked, details show on hover, keyboard focus or tap.
+- RSVP closing date, exact time and timezone, enforced on the server. Close or reopen RSVPs manually, duplicate an event, add a venue and a message to guests, copy a caterer summary.
+- Deleting an event needs typing the word delete in a styled confirmation, never a browser popup.
 - Create, edit and delete events: name, occasion, date, host name, invited count, RSVP deadline, plus-one limit, usual arrival time.
 - Optional guest name list: every named guest gets a personal link, so you see exactly who has not answered.
 - Overview: coming, declined, awaiting, plates, days to go, answered progress, arrivals by hour, meal mix, group mix, latest answers. Refreshes itself every 15 seconds.
@@ -41,7 +44,7 @@ app.html              host app (login, events, dashboard)
 rsvp.html             guest RSVP page
 assets/css/           site.css (base + landing), app.css (host app + guest page)
 src/lib/              config, http, session, auth, db, format, ui (no framework, no dependencies)
-src/features/host/    host views: authView, eventsView, eventForm, dashboard/ (tabs, stats, csv, add guest, nudge)
+src/features/host/    host views: authView, eventsView, calendar, eventForm, dashboard/ (tabs, stats, csv, add guest, nudge)
 src/pages/            entry points: host.js, rsvp.js, landing.js
 supabase/schema.sql   tables, policies, functions, grants
 tests/e2e.mjs         browser test of signup, RSVP and isolation against the real backend
@@ -84,6 +87,6 @@ The test creates two throwaway host accounts and an event, answers it from a sep
 - Free hosting tiers have limits and some are for non-commercial use only. Check your host's terms before running a paid service on it.
 - Hazir sends no messages. WhatsApp buttons open WhatsApp with a prefilled text for you to send.
 
-## License
+## Licence
 
 The code is source-available: you may read, run, copy and modify it for any purpose, but you may not sell it or a modified copy of it. The exact licence text is being finalised and will be added as `LICENSE`. Until it is, all rights stay with the author.

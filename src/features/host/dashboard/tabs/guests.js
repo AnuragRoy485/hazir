@@ -1,7 +1,7 @@
 import { csv } from '../csv.js';
 import { addGuest } from '../addGuest.js';
 import { db } from '../../../../lib/db.js';
-import { $, $$, toast } from '../../../../lib/ui.js';
+import { $, $$, toast, confirmBox } from '../../../../lib/ui.js';
 import { esc, fmtTime } from '../../../../lib/format.js';
 import { state, niceErr } from '../../ctx.js';
 import { stats } from '../stats.js';
@@ -30,4 +30,4 @@ export function guests(p){
   $$('.chips2 .chip').forEach(c=>c.onclick=()=>{state.f=c.dataset.f;$$('.chips2 .chip').forEach(x=>x.classList.toggle('on',x===c));tb()});
   $('#csv').onclick=csv;$('#addg').onclick=addGuest}
 export async function toggleIn(id){const r=state.res.find(x=>x.id===id);try{await db('responses?id=eq.'+id,{method:'PATCH',body:{checked_in:!r.checked_in}});r.checked_in=!r.checked_in;R.paint()}catch(e){toast(niceErr(e),1)}}
-export async function del(t,id,q){if(!confirm(q))return;try{await db(t+'?id=eq.'+id,{method:'DELETE',prefer:'return=minimal'});await R.load(state.ev.id);R.paint();toast('Removed')}catch(e){toast(niceErr(e),1)}}
+export async function del(t,id,q){if(!await confirmBox({title:'Remove?',body:q,ok:'Remove',danger:true}))return;try{await db(t+'?id=eq.'+id,{method:'DELETE',prefer:'return=minimal'});await R.load(state.ev.id);R.paint();toast('Removed')}catch(e){toast(niceErr(e),1)}}
