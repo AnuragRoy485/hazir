@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hazir - Know who is coming</title>
+<meta name="description" content="Hazir turns invitations into answers. Guests say yes or no, pick an arrival time, and you see a live headcount for every occasion.">
+<meta property="og:title" content="Hazir - Know who is coming">
+<meta property="og:description" content="RSVPs, arrival times and a live headcount for weddings, birthdays, pujas, dinners and every gathering.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3Ctext x='32' y='45' font-family='Georgia' font-size='38' font-style='italic' text-anchor='middle' fill='%23fff'%3EH%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="cursor" id="cursor" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <a href="#top" class="logo">Hazir<span>.</span></a>
+  <nav>
+    <a href="#why">Why Hazir</a>
+    <a href="#how">How it works</a>
+    <a href="#demo">Sample</a>
+    <a href="#occasions">Occasions</a>
+    <a href="#host">For hosts</a>
+  </nav>
+  <span class="navr"><a href="app.html" class="link2 login">Log in</a><a href="app.html" class="btn btn-sm magnetic">Start free</a></span>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="hero-text">
+    <p class="eyebrow reveal">Guest RSVPs, finally honest</p>
+    <h1 class="split" data-split>Know who<br>is <em>coming.</em></h1>
+    <p class="lead reveal" style="--d:.5s">Guests say yes or no, pick when they will arrive, and you watch the headcount move live. For weddings, birthdays, pujas, dinners, launches and every gathering in between.</p>
+    <div class="cta reveal" style="--d:.65s">
+      <a href="app.html" class="btn magnetic">Start hosting, free</a>
+      <a href="#demo" class="btn btn-ghost magnetic">See how it feels</a>
+    </div>
+    <p class="fine reveal" style="--d:.8s">Hazir (हाज़िर) means present, here, accounted for.</p>
+  </div>
+  <div class="hero-visual reveal" style="--d:.4s">
+    <div class="phone tilt" id="heroPhone">
+      <div class="notch"></div>
+      <p class="tiny">DASHBOARD</p>
+      <h3>Guest list</h3>
+      <div class="stats">
+        <div><small>INVITED</small><b data-count="400">0</b></div>
+        <div><small>COMING</small><b id="heroConfirmed">0</b></div>
+        <div><small>WAITING</small><b id="heroPending">400</b></div>
+      </div>
+      <div class="dots" id="heroDots"></div>
+    </div>
+  </div>
+</section>
+
+<section class="ticker" aria-hidden="true">
+  <div class="track">
+    <span>Weddings</span><span>Birthdays</span><span>Pujas</span><span>Engagements</span><span>Baby showers</span><span>Reunions</span><span>Housewarmings</span><span>Conferences</span><span>Dinners</span><span>Farewells</span>
+    <span>Weddings</span><span>Birthdays</span><span>Pujas</span><span>Engagements</span><span>Baby showers</span><span>Reunions</span><span>Housewarmings</span><span>Conferences</span><span>Dinners</span><span>Farewells</span>
+  </div>
+</section>
+
+<section class="problem section">
+  <p class="eyebrow reveal">The problem</p>
+  <h2 class="reveal">Four hundred invited.<br>Everyone says <em>yes.</em><br>Nobody tells you the time.</h2>
+  <div class="cols">
+    <p class="reveal">Hosts order food for a number they are guessing. Guests say "will try" and turn up two hours late, or not at all. The kitchen, the venue and the budget all pay for it.</p>
+    <p class="reveal" style="--d:.15s">Hazir replaces the guess with three plain answers from every guest: am I coming, how many of us, and when will we arrive. You see the real number as it forms.</p>
+  </div>
+  <div class="bignums">
+    <div class="reveal"><b data-count="400">0</b><span>invited</span></div>
+    <div class="reveal" style="--d:.1s"><b data-count="249">0</b><span>confirmed</span></div>
+    <div class="reveal" style="--d:.2s"><b data-count="38">0</b><span>declined</span></div>
+    <div class="reveal" style="--d:.3s"><b data-count="113">0</b><span>still to answer</span></div>
+  </div>
+  <p class="fine">Example figures for illustration.</p>
+</section>
+
+<section class="why section" id="why">
+  <p class="eyebrow reveal">Why Hazir exists</p>
+  <h2 class="reveal">Every Indian gathering runs on one unanswered question.</h2>
+  <div class="story">
+    <p class="reveal">We use an app for rides, an app for food, an app for money. Yet when we invite people to the most important days of our lives, we still ask on WhatsApp, count replies by scrolling, and hope.</p>
+    <p class="reveal">"Will try." "Maybe." A thumbs-up that means nothing. Then the real number arrives at the gate: forty fewer, or sixty more, and half of them two hours late. Food is wasted or runs out. Tables are wrong. A host who should be enjoying the day is on the phone.</p>
+    <p class="reveal">The usual fixes do not help. Spreadsheets break at fifty rows. Group chats bury answers. Generic form tools ask the wrong questions and do not know that a family of four is one answer with four plates and four different meals.</p>
+    <p class="reveal"><b>Hazir asks three questions, the ones a host actually needs:</b> are you coming, how many of you, and when will you arrive. The answers become a live headcount, a plate count and an arrival curve, the moment each guest taps send.</p>
+  </div>
+  <div class="solves">
+    <div class="reveal"><h3>No more guessing</h3><p>One honest number for food, seats and staff, updated live.</p></div>
+    <div class="reveal" style="--d:.08s"><h3>No more chasing</h3><p>See exactly who has not answered, and nudge them in one tap.</p></div>
+    <div class="reveal" style="--d:.16s"><h3>No more late surprises</h3><p>Know when people will arrive, hour by hour, so the day flows.</p></div>
+    <div class="reveal" style="--d:.24s"><h3>No app for guests</h3><p>A link and ten seconds. Works on any phone, for any age.</p></div>
+  </div>
+</section>
+
+<section class="how section" id="how">
+  <p class="eyebrow reveal">How it works</p>
+  <h2 class="reveal">Four steps. No spreadsheet.</h2>
+  <ol class="steps">
+    <li class="step reveal"><span class="n">01</span><h3>Create the event</h3><p>Name it, set the date and the number you invited. Choose the occasion and get one link.</p></li>
+    <li class="step reveal" style="--d:.08s"><span class="n">02</span><h3>Share one link</h3><p>Send it on WhatsApp, print it as a code, drop it in a group. Guests need no account.</p></li>
+    <li class="step reveal" style="--d:.16s"><span class="n">03</span><h3>Guests answer</h3><p>Yes or no, how many are coming, and an expected arrival time on a simple clock.</p></li>
+    <li class="step reveal" style="--d:.24s"><span class="n">04</span><h3>Watch it form</h3><p>Confirmed, declined and waiting, plus plates to prepare and when the crowd actually lands.</p></li>
+  </ol>
+</section>
+
+<section class="demo section" id="demo">
+  <p class="eyebrow reveal">Try a sample</p>
+  <h2 class="reveal">Be the guest. Watch the host.</h2>
+  <p class="lead reveal">This is a sample with made-up guests, so you can feel it without signing up. Real events live in your host account.</p>
+  <div class="chips reveal" id="occChips" role="tablist" aria-label="Occasion"></div>
+  <div class="demo-grid"><div id="demoGuest"></div><div id="demoBoard"></div></div>
+</section>
+
+<section class="occ section" id="occasions">
+  <p class="eyebrow reveal">Every occasion</p>
+  <h2 class="reveal">Not just weddings.</h2>
+  <div class="grid">
+    <article class="tile reveal"><h3>Weddings</h3><p>Sangeet, haldi, reception. Count each function on its own.</p></article>
+    <article class="tile reveal" style="--d:.06s"><h3>Birthdays</h3><p>From a first birthday to a surprise at sixty.</p></article>
+    <article class="tile reveal" style="--d:.12s"><h3>Pujas</h3><p>Know how much prasad and how many seats before the day.</p></article>
+    <article class="tile reveal" style="--d:.18s"><h3>Baby showers</h3><p>Gentle reminders, a clear number, no chasing.</p></article>
+    <article class="tile reveal" style="--d:.24s"><h3>Dinners and parties</h3><p>Small tables, exact seats, nothing wasted.</p></article>
+    <article class="tile reveal" style="--d:.3s"><h3>Corporate</h3><p>Offsites, launches and conferences with real attendance.</p></article>
+  </div>
+</section>
+
+<section class="host section" id="host">
+  <p class="eyebrow reveal">For hosts</p>
+  <h2 class="reveal">Plan from the real number.</h2>
+  <div class="features">
+    <div class="feat reveal"><h3>Live headcount</h3><p>Confirmed, declined and waiting, updated the moment a guest answers.</p></div>
+    <div class="feat reveal" style="--d:.08s"><h3>Arrival clock</h3><p>See when people land, hour by hour, so the kitchen and the doors are ready.</p></div>
+    <div class="feat reveal" style="--d:.16s"><h3>Plates and seats</h3><p>A single number for catering, based on the people who said yes.</p></div>
+    <div class="feat reveal" style="--d:.24s"><h3>One link</h3><p>No app to install, no account for guests. Works on any phone.</p></div>
+    <div class="feat reveal"><h3>Meals and groups</h3><p>Veg, non-veg, Jain, vegan and kids meals counted per guest, plus family, friends and side.</p></div>
+    <div class="feat reveal" style="--d:.08s"><h3>Plus-ones by name</h3><p>Every companion is named and gets a meal, so the list matches the table.</p></div>
+    <div class="feat reveal" style="--d:.16s"><h3>Deadline and reminders</h3><p>Set an RSVP date. See who is still waiting and copy a polite nudge in one tap.</p></div>
+    <div class="feat reveal" style="--d:.24s"><h3>Search, filter, export</h3><p>Find anyone, filter by status, group or meal, and download the list as a spreadsheet.</p></div>
+  </div>
+</section>
+
+<section class="cta-end section">
+  <h2 class="reveal">Your next gathering, <em>counted.</em></h2>
+  <p class="lead reveal">Create a free host account, share one link, and watch the answers arrive.</p>
+  <div class="cta reveal"><a href="app.html" class="btn magnetic">Create your first event</a><a href="app.html" class="btn btn-ghost magnetic">Log in</a></div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="logo">Hazir<span>.</span></div>
+  <p>Know who is coming.</p>
+</footer>
+
+<script type="module" src="src/pages/landing.js"></script>
+</body>
+</html>
