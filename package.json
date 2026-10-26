@@ -1,0 +1,9 @@
+{
+  "name": "hazir",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Guest RSVPs, arrival times and a live headcount for every occasion.",
+  "type": "module",
+  "scripts": { "start": "python3 -m http.server 8080", "test": "node tests/e2e.mjs" },
+  "devDependencies": { "puppeteer-core": "^25.16.0" }
+}
