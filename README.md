@@ -1,5 +1,7 @@
 # Hazir (हाज़िर)
 
+![Hazir calendar view with an event and guest stats](docs/screenshot-calendar.png)
+
 **Know who is coming.** Hazir turns invitations into answers. Guests say yes or no, say how many people are coming and when they will arrive. The host watches a live headcount, plate count and arrival curve. It works for weddings, birthdays, pujas, baby showers, dinners and corporate events.
 
 Hazir means *present, here, accounted for*.
