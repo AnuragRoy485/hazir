@@ -97,7 +97,7 @@ In plain words:
 
 - You may read, run, copy, modify and share the code, including for your own events, your company or a non-profit.
 - You may **not sell** it. Under the Commons Clause, "Sell" means offering a product or service to others for a fee or other consideration, including paid hosting, consulting or support, whose value comes entirely or substantially from Hazir.
-- Keep the copyright notice and the licence text with any copy.
+- Keep the copyright notice and the license text with any copy.
 - The software comes with no warranty.
 
-This is not an OSI-approved open source licence, so it is described as source-available. It is not legal advice; if you need certainty for a commercial situation, ask the author.
+This is not an OSI-approved open source license, so it is described as source-available. It is not legal advice; if you need certainty for a commercial situation, ask the author.
