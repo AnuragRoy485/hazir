@@ -128,6 +128,7 @@ input[type="checkbox"]{width:16px;height:16px;accent-color:#000;cursor:pointer}
 /* Admin tables become stacked cards on small screens so every field and action
    stays readable without sideways scrolling. */
 @media (max-width: 720px) {
+  .tblwrap .tbl.cardsm { min-width: 0; }
   .tbl.cardsm thead { display: none; }
   .tbl.cardsm tr { display: block; border: 1px solid #e3ddd2; border-radius: 12px; padding: 10px 12px; margin: 10px 0; background: #fff; }
   .tbl.cardsm td { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border: 0; padding: 4px 0; text-align: right; word-break: break-word; }
