@@ -936,3 +936,109 @@ end $$;
 
 revoke all on function public.admin_request_password_reset(text) from public;
 grant execute on function public.admin_request_password_reset(text) to authenticated;
+
+-- Migration 17: co-hosts. A co-host is recorded by email and becomes active as soon
+-- as a Hazir account exists with that exact email. Co-hosts get full host-level
+-- control of that event only: event details, banner files, guests, answers and
+-- deletion. They can never touch the owner's account, other events, or admin
+-- features, and they cannot change event ownership or manage co-hosts. Revoking
+-- is a row delete checked on every request, so it applies to open sessions
+-- immediately. Only the event owner (or the site admin) manages co-hosts.
+create table if not exists public.event_members (
+  id uuid primary key default gen_random_uuid(),
+  event_id text not null references public.events(id) on delete cascade,
+  email text not null,
+  added_by uuid not null default auth.uid(),
+  created_at timestamptz not null default now(),
+  unique (event_id, email)
+);
+alter table public.event_members enable row level security;
+
+create or replace function public.is_event_member(p_event_id text) returns boolean
+language sql security definer set search_path = public stable as $$
+  select exists (
+    select 1 from public.event_members m
+    join auth.users u on lower(u.email) = lower(m.email)
+    where m.event_id = p_event_id and u.id = auth.uid());
+$$;
+
+create or replace function public.is_event_owner(p_event_id text) returns boolean
+language sql security definer set search_path = public stable as $$
+  select exists (select 1 from public.events e where e.id = p_event_id and e.owner = auth.uid());
+$$;
+
+-- Co-host management RPCs: owner or admin only. add returns whether the account exists yet.
+create or replace function public.add_cohost(p_event_id text, p_email text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_mail text := lower(trim(p_email)); v_exists boolean;
+begin
+  if v_uid is null or not (public.is_event_owner(p_event_id) or public.is_admin()) then raise exception 'not authorized'; end if;
+  if v_mail !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'that does not look like an email address'; end if;
+  if exists (select 1 from public.events e where e.id = p_event_id and e.owner = v_uid
+             and exists (select 1 from auth.users u where u.id = v_uid and lower(u.email) = v_mail)) then
+    raise exception 'that is your own address - you already own this event'; end if;
+  insert into public.event_members (event_id, email) values (p_event_id, v_mail) on conflict (event_id, email) do nothing;
+  select exists (select 1 from auth.users u where lower(u.email) = v_mail) into v_exists;
+  return jsonb_build_object('email', v_mail, 'account_exists', v_exists);
+end $$;
+
+create or replace function public.remove_cohost(p_event_id text, p_email text) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not (public.is_event_owner(p_event_id) or public.is_admin()) then raise exception 'not authorized'; end if;
+  delete from public.event_members where event_id = p_event_id and email = lower(trim(p_email));
+end $$;
+
+create or replace function public.list_cohosts(p_event_id text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not (public.is_event_owner(p_event_id) or public.is_event_member(p_event_id) or public.is_admin()) then
+    raise exception 'not authorized'; end if;
+  return (select coalesce(jsonb_agg(jsonb_build_object(
+      'email', m.email, 'added_at', m.created_at,
+      'account_exists', exists (select 1 from auth.users u where lower(u.email) = lower(m.email))) order by m.created_at), '[]'::jsonb)
+    from public.event_members m where m.event_id = p_event_id);
+end $$;
+
+-- Members can read and change the shared event and all its data. Ownership and
+-- co-host management stay with the owner: owner column can no longer be updated
+-- by any client, and event_members writes only come from the RPCs above.
+drop policy if exists events_member on public.events;
+create policy events_member on public.events for all to authenticated
+  using (public.is_event_member(id)) with check (public.is_event_member(id));
+drop policy if exists invitees_member on public.invitees;
+create policy invitees_member on public.invitees for all to authenticated
+  using (public.is_event_member(event_id)) with check (public.is_event_member(event_id));
+drop policy if exists responses_member on public.responses;
+create policy responses_member on public.responses for all to authenticated
+  using (public.is_event_member(event_id)) with check (public.is_event_member(event_id));
+
+drop policy if exists event_members_read on public.event_members;
+create policy event_members_read on public.event_members for select to authenticated
+  using (public.is_event_owner(event_id) or public.is_event_member(event_id) or public.is_admin());
+
+revoke update (owner) on public.events from authenticated;
+
+-- Banner files: co-hosts manage the shared event's folder too.
+drop policy if exists banners_owner_insert on storage.objects;
+create policy banners_owner_insert on storage.objects for insert to authenticated
+  with check (bucket_id = 'banners' and (public.is_admin() or public.is_event_member((storage.foldername(name))[1]) or exists (
+    select 1 from public.events ev where ev.id = (storage.foldername(name))[1] and ev.owner = auth.uid())));
+drop policy if exists banners_owner_update on storage.objects;
+create policy banners_owner_update on storage.objects for update to authenticated
+  using (bucket_id = 'banners' and (public.is_admin() or public.is_event_member((storage.foldername(name))[1]) or exists (
+    select 1 from public.events ev where ev.id = (storage.foldername(name))[1] and ev.owner = auth.uid())));
+drop policy if exists banners_owner_delete on storage.objects;
+create policy banners_owner_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'banners' and (public.is_admin() or public.is_event_member((storage.foldername(name))[1]) or exists (
+    select 1 from public.events ev where ev.id = (storage.foldername(name))[1] and ev.owner = auth.uid())));
+drop policy if exists banners_owner_select on storage.objects;
+create policy banners_owner_select on storage.objects for select to authenticated
+  using (bucket_id = 'banners' and (public.is_admin() or public.is_event_member((storage.foldername(name))[1]) or exists (
+    select 1 from public.events ev where ev.id = (storage.foldername(name))[1] and ev.owner = auth.uid())));
+
+grant select on public.event_members to authenticated;
+revoke all on function public.add_cohost(text, text), public.remove_cohost(text, text), public.list_cohosts(text) from public;
+grant execute on function public.add_cohost(text, text), public.remove_cohost(text, text), public.list_cohosts(text) to authenticated;
