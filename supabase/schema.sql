@@ -594,3 +594,47 @@ end $$;
 
 revoke all on function public.admin_event_detail(text) from public;
 grant execute on function public.admin_event_detail(text) to authenticated;
+
+-- Migration 12: admin bulk deletes. Same guards as the single-row versions: the
+-- caller must be admin, can never remove themselves or any admin account. Every
+-- row actually removed is audited; skipped rows (admins, missing) are reported.
+create or replace function public.admin_delete_users(p_user_ids uuid[]) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_id uuid; v_email text; v_deleted text[] := '{}'; v_skipped int := 0;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  foreach v_id in array coalesce(p_user_ids, '{}') loop
+    if v_id = v_uid or exists (select 1 from public.user_roles where user_id = v_id) then
+      v_skipped := v_skipped + 1; continue;
+    end if;
+    delete from auth.users where id = v_id returning email into v_email;
+    if v_email is null then v_skipped := v_skipped + 1; continue; end if;
+    v_deleted := v_deleted || v_email;
+  end loop;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_delete_users', jsonb_build_object('count', coalesce(array_length(v_deleted,1),0), 'users', v_deleted));
+  return jsonb_build_object('deleted', coalesce(array_length(v_deleted,1),0), 'skipped', v_skipped);
+end $$;
+
+create or replace function public.admin_delete_events(p_event_ids text[]) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_id text; v_title text; v_deleted text[] := '{}'; v_skipped int := 0;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  foreach v_id in array coalesce(p_event_ids, '{}') loop
+    select title into v_title from public.events where id = v_id;
+    if v_title is null then v_skipped := v_skipped + 1; continue; end if;
+    begin
+      delete from storage.objects where bucket_id = 'banners' and (storage.foldername(name))[1] = v_id;
+    exception when others then null;
+    end;
+    delete from public.events where id = v_id;
+    v_deleted := v_deleted || v_title;
+  end loop;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_delete_events', jsonb_build_object('count', coalesce(array_length(v_deleted,1),0), 'events', v_deleted));
+  return jsonb_build_object('deleted', coalesce(array_length(v_deleted,1),0), 'skipped', v_skipped);
+end $$;
+
+revoke all on function public.admin_delete_users(uuid[]), public.admin_delete_events(text[]) from public;
+grant execute on function public.admin_delete_users(uuid[]), public.admin_delete_events(text[]) to authenticated;

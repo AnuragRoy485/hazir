@@ -16,7 +16,7 @@ function nav(name) {
 const shell = html => { root.innerHTML = `<section class="evpage">${html}</section>`; };
 const ts = v => v ? new Date(v).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
 
-const LABELS = { admin_overview: 'Viewed the overview', admin_update_user: 'Edited a host', admin_delete_user: 'Deleted a host', admin_update_event: 'Edited an event', admin_delete_event: 'Deleted an event' };
+const LABELS = { admin_overview: 'Viewed the overview', admin_update_user: 'Edited a host', admin_delete_user: 'Deleted a host', admin_update_event: 'Edited an event', admin_delete_event: 'Deleted an event', admin_view_event: 'Viewed RSVP details', admin_delete_users: 'Deleted hosts in bulk', admin_delete_events: 'Deleted events in bulk' };
 function describe(l) {
   const d = l.detail || {};
   switch (l.action) {
@@ -24,6 +24,9 @@ function describe(l) {
     case 'admin_delete_user': return `Deleted ${d.user || 'a host'} and all their data`;
     case 'admin_update_event': return `Edited the event "${d.title || ''}"`;
     case 'admin_delete_event': return `Deleted the event "${d.title || ''}"`;
+    case 'admin_view_event': return `Viewed RSVP details for "${d.title || ''}"`;
+    case 'admin_delete_users': return `Deleted ${d.count || 0} host${d.count === 1 ? '' : 's'}: ${(d.users || []).join(', ')}`;
+    case 'admin_delete_events': return `Deleted ${d.count || 0} event${d.count === 1 ? '' : 's'}: ${(d.events || []).map(t => '"' + t + '"').join(', ')}`;
     default: return LABELS[l.action] || l.action.replace(/_/g, ' ');
   }
 }
@@ -79,22 +82,26 @@ async function paint() {
     </div>
     <div class="card reveal in"><h4>Hosts</h4>
       <p class="muted">${hosts.length} real host${hosts.length === 1 ? '' : 's'}${tests.length ? ` · ${tests.length} test account${tests.length === 1 ? '' : 's'} from automated checks listed below` : ''}.</p>
-      <div class="tblwrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Events</th><th>Joined</th><th>Last sign-in</th><th></th></tr></thead>
-      <tbody>${hosts.map(u => `<tr><td>${esc(u.name || 'Not set')}</td><td>${esc(u.email || '')}</td><td>${u.events}</td><td>${ts(u.created_at)}</td><td>${ts(u.last_sign_in_at)}</td>
-        <td class="row"><button class="mini" data-vu="${u.id}">View</button><button class="mini" data-eu="${u.id}" data-n="${esc(u.name || '')}">Edit</button><button class="mini" data-du="${u.id}" data-m="${esc(u.email || '')}">Delete</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No hosts yet.</td></tr>'}</tbody></table></div></div>
+      <div class="row"><input class="srch" id="sh" placeholder="Search hosts" autocomplete="off"><button class="btn btn-ghost btn-sm bulkbar" id="bdh" hidden>Delete selected</button></div>
+      <div class="tblwrap"><table class="tbl"><thead><tr><th><input type="checkbox" id="sah" aria-label="Select all hosts"></th><th>Name</th><th>Email</th><th>Events</th><th>Joined</th><th>Last sign-in</th><th></th></tr></thead>
+      <tbody id="tbh">${hosts.map(u => `<tr><td><input type="checkbox" data-su="${u.id}" data-m="${esc(u.email || '')}"></td><td>${esc(u.name || 'Not set')}</td><td>${esc(u.email || '')}</td><td>${u.events}</td><td>${ts(u.created_at)}</td><td>${ts(u.last_sign_in_at)}</td>
+        <td class="row"><button class="mini" data-vu="${u.id}">View</button><button class="mini" data-eu="${u.id}" data-n="${esc(u.name || '')}">Edit</button><button class="mini" data-du="${u.id}" data-m="${esc(u.email || '')}">Delete</button></td></tr>`).join('') || '<tr><td colspan="7" class="muted">No hosts yet.</td></tr>'}</tbody></table></div></div>
     ${tests.length ? `<div class="card reveal in testcard"><h4>Test accounts</h4>
       <p class="muted">Created by automated checks during development. Kept for the record; removal needs your approval.</p>
-      <div class="tblwrap"><table class="tbl"><thead><tr><th>Email</th><th>Events</th><th>Created</th><th></th></tr></thead>
-      <tbody>${tests.map(u => `<tr><td>${esc(u.email || '')}</td><td>${u.events}</td><td>${ts(u.created_at)}</td>
+      <div class="row"><input class="srch" id="st" placeholder="Search test accounts" autocomplete="off"><button class="btn btn-ghost btn-sm bulkbar" id="bdt" hidden>Delete selected</button></div>
+      <div class="tblwrap"><table class="tbl"><thead><tr><th><input type="checkbox" id="sat" aria-label="Select all test accounts"></th><th>Email</th><th>Events</th><th>Created</th><th></th></tr></thead>
+      <tbody id="tbt">${tests.map(u => `<tr><td><input type="checkbox" data-su="${u.id}" data-m="${esc(u.email || '')}"></td><td>${esc(u.email || '')}</td><td>${u.events}</td><td>${ts(u.created_at)}</td>
         <td class="row"><button class="mini" data-du="${u.id}" data-m="${esc(u.email || '')}">Delete</button></td></tr>`).join('')}</tbody></table></div></div>` : ''}
     <div class="card reveal in"><h4>Events</h4>
-      <div class="tblwrap"><table class="tbl"><thead><tr><th>Event</th><th>Host</th><th>Date</th><th>Guests</th><th>Answers</th><th>Coming</th><th>Banner</th><th></th></tr></thead>
-      <tbody>${(ov.events || []).map(e => `<tr><td>${esc(e.title)}</td><td>${esc(e.host_email || e.host_name || '')}</td><td>${fmtDate(e.event_date)}</td><td>${e.guests}</td><td>${e.answers}</td><td>${e.coming}</td><td>${e.has_banner ? 'Yes' : '-'}</td>
+      <div class="row"><input class="srch" id="se" placeholder="Search events or hosts" autocomplete="off"><select class="srch sel" id="fev"><option value="all">All dates</option><option value="up">Upcoming</option><option value="past">Past</option></select><button class="btn btn-ghost btn-sm bulkbar" id="bde" hidden>Delete selected</button></div>
+      <div class="tblwrap"><table class="tbl"><thead><tr><th><input type="checkbox" id="sae" aria-label="Select all events"></th><th>Event</th><th>Host</th><th>Date</th><th>Guests</th><th>Answers</th><th>Coming</th><th>Banner</th><th></th></tr></thead>
+      <tbody id="tbe">${(ov.events || []).map(e => `<tr data-d="${e.event_date}"><td><input type="checkbox" data-se="${e.id}" data-m="${esc(e.title)}"></td><td>${esc(e.title)}</td><td>${esc(e.host_email || e.host_name || '')}</td><td>${fmtDate(e.event_date)}</td><td>${e.guests}</td><td>${e.answers}</td><td>${e.coming}</td><td>${e.has_banner ? 'Yes' : '-'}</td>
         <td class="row"><button class="mini" data-ve="${e.id}">View</button><button class="mini" data-ee="${e.id}">Edit</button><button class="mini" data-de="${e.id}" data-t="${esc(e.title)}">Delete</button></td></tr>`).join('')}</tbody></table></div></div>
     <div class="card reveal in"><h4>Admin activity</h4>
       <p class="muted">Every admin lookup and change is recorded here automatically.</p>
+      <div class="row"><input class="srch" id="sa" placeholder="Search activity" autocomplete="off"><select class="srch sel" id="fa"><option value="all">All actions</option><option value="view">Views</option><option value="edit">Edits</option><option value="del">Deletions</option></select></div>
       <div class="tblwrap"><table class="tbl"><thead><tr><th>When</th><th>What happened</th><th>By</th></tr></thead>
-      <tbody>${(audit || []).map(l => `<tr><td>${ts(l.created_at)}</td><td>${esc(describe(l))}</td><td class="muted">${esc(l.actor_email || 'Deleted account')}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">No activity yet.</td></tr>'}</tbody></table></div></div>`);
+      <tbody id="tba">${(audit || []).map(l => `<tr><td>${ts(l.created_at)}</td><td>${esc(describe(l))}</td><td class="muted">${esc(l.actor_email || 'Deleted account')}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">No activity yet.</td></tr>'}</tbody></table></div></div>`);
   wire(ov);
 }
 
@@ -147,6 +154,7 @@ function wire(ov) {
       again('Event updated');
     } catch (e) { toast(e.message || 'Update failed', 1); }
   });
+  wireFilters();
   $$('[data-de]').forEach(b => b.onclick = async () => {
     const okd = await confirmBox({ title: 'Delete this event?', body: `"${b.dataset.t}", all its guests and all answers will be removed permanently. This cannot be undone.`, ok: 'Delete event', word: 'delete', danger: true });
     if (!okd) return;
@@ -171,6 +179,69 @@ function wireEventViews() {
       <tbody>${res.map(r => `<tr><td>${esc(r.name || '')}</td><td>${r.attending ? 'Coming' : 'Declined'}</td><td>${r.attending ? (r.adults ?? r.party ?? '') : ''}</td><td>${r.attending ? (r.kids || 0) : ''}</td><td>${esc(r.grp || '')}</td><td>${esc(r.meal || '')}</td><td>${r.attending && r.arrival != null ? fmtTime(r.arrival) : ''}</td><td>${esc(r.note || '')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No answers yet.</p>'}
       ${awaiting.length ? `<p class="muted">Awaiting: ${awaiting.map(i => esc(i.name)).join(', ')}</p>` : ''}`);
   });
+}
+
+function wireFilters() {
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = id => [...document.querySelectorAll('#' + id + ' tr')];
+  const textFilter = (inputId, bodyId) => {
+    const el = document.getElementById(inputId); if (!el) return;
+    el.oninput = () => { const q = el.value.trim().toLowerCase(); rows(bodyId).forEach(r => r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none'); };
+  };
+  textFilter('sh', 'tbh'); textFilter('st', 'tbt'); textFilter('sa', 'tba');
+  const se = $('#se'), fev = $('#fev');
+  const evFilter = () => {
+    const q = (se.value || '').trim().toLowerCase(), f = fev.value;
+    rows('tbe').forEach(r => {
+      const okq = r.innerText.toLowerCase().includes(q);
+      const d = r.dataset.d || '';
+      const okf = f === 'all' || (f === 'up' ? d >= today : d < today);
+      r.style.display = okq && okf ? '' : 'none';
+    });
+  };
+  if (se) { se.oninput = evFilter; fev.onchange = evFilter; }
+  const fa = $('#fa');
+  if (fa) fa.onchange = () => {
+    const f = fa.value, q = ($('#sa').value || '').trim().toLowerCase();
+    rows('tba').forEach(r => {
+      const t = r.innerText.toLowerCase();
+      const okf = f === 'all' || (f === 'view' ? t.includes('view') : f === 'edit' ? (t.includes('renamed') || t.includes('edited')) : t.includes('delet'));
+      r.style.display = t.includes(q) && okf ? '' : 'none';
+    });
+  };
+  // selection + bulk delete
+  const selState = { u: new Set(), e: new Set() };
+  const refreshBar = () => {
+    const nu = selState.u.size, ne = selState.e.size;
+    [['#bdh', selState.u], ['#bdt', selState.u], ['#bde', selState.e]].forEach(([id]) => { const b = $(id); if (b) b.hidden = true; });
+    if ($('#bdh')) $('#bdh').hidden = !nu; if ($('#bdt')) $('#bdt').hidden = !nu; if ($('#bde')) $('#bde').hidden = !ne;
+    if ($('#bdh') && nu) $('#bdh').textContent = `Delete ${nu} selected`;
+    if ($('#bdt') && nu) $('#bdt').textContent = `Delete ${nu} selected`;
+    if ($('#bde') && ne) $('#bde').textContent = `Delete ${ne} selected`;
+  };
+  $$('[data-su]').forEach(c => c.onchange = () => { c.checked ? selState.u.add(c.dataset.su) : selState.u.delete(c.dataset.su); refreshBar(); });
+  $$('[data-se]').forEach(c => c.onchange = () => { c.checked ? selState.e.add(c.dataset.se) : selState.e.delete(c.dataset.se); refreshBar(); });
+  const all = (id, sel, set) => { const a = $(id); if (a) a.onchange = () => { $$(sel).forEach(c => { c.checked = a.checked; a.checked ? set.add(c.dataset.su || c.dataset.se) : set.delete(c.dataset.su || c.dataset.se); }); refreshBar(); }; };
+  all('#sah', '#tbh [data-su]', selState.u); all('#sat', '#tbt [data-su]', selState.u); all('#sae', '#tbe [data-se]', selState.e);
+  const bulk = async (kind) => {
+    const set = kind === 'u' ? selState.u : selState.e;
+    const ids = [...set]; if (!ids.length) return;
+    const names = ids.map(id => { const c = document.querySelector(`[data-s${kind}="${id}"]`); return c ? c.dataset.m : id; });
+    const what = kind === 'u' ? 'host account' : 'event';
+    const okd = await confirmBox({
+      title: `Delete ${ids.length} ${what}${ids.length === 1 ? '' : 's'}?`,
+      body: `${names.slice(0, 6).map(n => '"' + n + '"').join(', ')}${ids.length > 6 ? ' and ' + (ids.length - 6) + ' more' : ''} - ${kind === 'u' ? 'with all their events, guests and answers' : 'with all guests and answers'} - will be removed permanently. This cannot be undone.`,
+      ok: `Delete ${ids.length}`, word: 'delete', danger: true });
+    if (!okd) return;
+    try {
+      const r = await rpc(kind === 'u' ? 'admin_delete_users' : 'admin_delete_events', kind === 'u' ? { p_user_ids: ids } : { p_event_ids: ids });
+      toast(`Deleted ${r.deleted}${r.skipped ? ', skipped ' + r.skipped : ''}`);
+      await paint();
+    } catch (e) { toast(e.message || 'Delete failed', 1); }
+  };
+  if ($('#bdh')) $('#bdh').onclick = () => bulk('u');
+  if ($('#bdt')) $('#bdt').onclick = () => bulk('u');
+  if ($('#bde')) $('#bde').onclick = () => bulk('e');
 }
 
 initEffects();
