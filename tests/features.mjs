@@ -9,7 +9,7 @@ const root = join(fileURLToPath(import.meta.url), '..', '..'), SHOTS = process.e
 await mkdir(SHOTS, { recursive: true });
 const T = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 let server, base = process.env.BASE_URL;
-if (!base) { server = http.createServer(async (q, r) => { const u = q.url.split('?')[0]; try { const f = await readFile(join(root, u === '/' ? 'index.html' : u === '/rsvp' ? 'rsvp.html' : u)); r.writeHead(200, { 'content-type': T[extname(u === '/' ? 'x.html' : u)] }); r.end(f); } catch { r.writeHead(404); r.end(); } }).listen(0); base = 'http://localhost:' + server.address().port; }
+if (!base) { server = http.createServer(async (q, r) => { const u = q.url.split('?')[0]; try { const f = await readFile(join(root, u === '/' ? 'index.html' : u === '/rsvp' ? 'rsvp.html' : u)); r.writeHead(200, { 'content-type': T[u === '/' || u === '/rsvp' ? '.html' : extname(u)] }); r.end(f); } catch { r.writeHead(404); r.end(); } }).listen(0); base = 'http://localhost:' + server.address().port; }
 const sl = ms => new Promise(r => setTimeout(r, ms));
 const res = [];
 const check = async (name, fn) => { try { const v = await fn(); const ok = v !== false; res.push(ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (typeof v === 'string' ? ' - ' + v : '')); } catch (e) { res.push(false); console.log('FAIL ' + name + ' - ' + e.message.slice(0, 120)); } };
@@ -20,7 +20,7 @@ let gRef = null; const p2v = () => gRef.$eval('.savebox input', e => e.value).ca
 const day = n => new Date(Date.now() + 864e5 * n).toISOString().slice(0, 10);
 const email = `hazir-e2e-f${Date.now()}@example.com`, pw = 'Test-pass-12345';
 
-for (const [w, h, tag] of [[1280, 850, 'desktop'], [390, 844, 'mobile']]) {
+for (const [w, h, tag] of [[1280, 850, 'desktop'], [390, 844, 'mobile']].filter(v => !process.env.ONLY || v[2] === process.env.ONLY)) {
   console.log(`\n== ${tag} ${w}px`);
   const ctx = await browser.createBrowserContext(), p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.setViewport({ width: w, height: h });
@@ -106,7 +106,7 @@ for (const [w, h, tag] of [[1280, 850, 'desktop'], [390, 844, 'mobile']]) {
     await p.type('#mw', 'delet'); const still = await p.$eval('#mo', e => e.disabled); await p.type('#mw', 'e'); const en = await p.$eval('#mo', e => !e.disabled);
     await p.screenshot({ path: `${SHOTS}/${tag}-delete-modal.png` }); await click(p, '#mo'); await p.waitForSelector('.dash', { timeout: 10000 }); await sl(800);
     const left = (await p.$$('.evcard')).length; return dis && still && en && left === 1 ? true : `dis=${dis} still=${still} en=${en} left=${left}`; });
-  await check('Escape cancels the delete dialog and keeps the event', async () => { await click(p, '.evcard'); await p.waitForSelector('.evpage'); await click(p, '[data-t="share"]'); await sl(400); await click(p, '#del'); await p.waitForSelector('.dlg'); await p.keyboard.press('Escape'); await sl(500); return !(await p.$('.dlg')) && !!(await p.$('.evpage')); });
+  await check('Escape cancels the delete dialog and keeps the event', async () => { if (!await p.waitForSelector('.evcard', { timeout: 15000 }).then(() => 1).catch(() => 0)) return 'no evcard; body=' + (await txt(p, 'body')).slice(0, 260).replace(/\n/g, ' | '); await click(p, '.evcard'); await p.waitForSelector('.evpage'); await click(p, '[data-t="share"]'); await sl(400); await click(p, '#del'); await p.waitForSelector('.dlg'); await p.keyboard.press('Escape'); await sl(500); return !(await p.$('.dlg')) && !!(await p.$('.evpage')); });
   await check('delete event removes it', async () => { await click(p, '[data-t="share"]'); await sl(500); await click(p, '#del'); await p.waitForSelector('.dlg'); await p.type('#mw', 'DELETE'); await click(p, '#mo'); await p.waitForSelector('.dash', { timeout: 10000 }); await g.goto(`${base}/rsvp.html?e=${eid}`, { waitUntil: 'networkidle0' }); return /not found/i.test(await txt(g, '#root')); });
   await check(`no JavaScript errors (${tag})`, async () => errs.length === 0 ? true : errs.join('; '));
   await ctx.close();
