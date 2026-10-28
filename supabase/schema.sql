@@ -378,3 +378,79 @@ drop policy if exists banners_owner_select on storage.objects;
 create policy banners_owner_select on storage.objects for select to authenticated
   using (bucket_id = 'banners' and exists (
     select 1 from public.events ev where ev.id = (storage.foldername(name))[1] and ev.owner = auth.uid()));
+
+-- Migration 8: super-admin dashboard. Exactly one seeded owner role, server-enforced:
+-- every admin read goes through a security-definer function that checks the role first
+-- and records the call in an audit log. Clients can never query other users' data
+-- directly; the frontend only calls these functions. No admin write/delete actions
+-- exist yet - the dashboard is read-only plus its audit trail.
+
+create table if not exists public.user_roles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  role text not null check (role = 'admin'),
+  created_at timestamptz not null default now()
+);
+alter table public.user_roles enable row level security;
+drop policy if exists user_roles_read_own on public.user_roles;
+create policy user_roles_read_own on public.user_roles for select to authenticated
+  using (auth.uid() = user_id);
+
+create or replace function public.is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin')
+$$;
+
+insert into public.user_roles (user_id, role)
+  select id, 'admin' from auth.users where lower(email) = 'anuragroy485@gmail.com'
+  on conflict (user_id) do nothing;
+
+create table if not exists public.admin_audit_log (
+  id bigint generated always as identity primary key,
+  actor uuid not null,
+  action text not null,
+  detail jsonb not null default '{}',
+  created_at timestamptz not null default now()
+);
+alter table public.admin_audit_log enable row level security;
+drop policy if exists admin_audit_read on public.admin_audit_log;
+create policy admin_audit_read on public.admin_audit_log for select to authenticated
+  using (public.is_admin());
+
+create or replace function public.admin_overview() returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  insert into public.admin_audit_log (actor, action) values (v_uid, 'admin_overview');
+  return jsonb_build_object(
+    'totals', jsonb_build_object(
+      'users', (select count(*) from auth.users),
+      'events', (select count(*) from public.events),
+      'guests', (select count(*) from public.invitees),
+      'answers', (select count(*) from public.responses),
+      'banners', (select count(*) from public.events where banner is not null)),
+    'users', (select coalesce(jsonb_agg(u order by u.created_at desc), '[]'::jsonb) from (
+      select au.id, au.email, au.created_at, au.last_sign_in_at,
+        (select count(*) from public.events e where e.owner = au.id) as events
+      from auth.users au order by au.created_at desc limit 100) u),
+    'events', (select coalesce(jsonb_agg(v order by v.created_at desc), '[]'::jsonb) from (
+      select e.id, e.title, e.event_date, e.created_at, e.host_name,
+        (select email from auth.users au where au.id = e.owner) as host_email,
+        (select count(*) from public.invitees i where i.event_id = e.id) as guests,
+        (select count(*) from public.responses r where r.event_id = e.id) as answers,
+        (select count(*) from public.responses r where r.event_id = e.id and r.attending) as coming,
+        (e.banner is not null) as has_banner
+      from public.events e order by e.created_at desc limit 200) v));
+end $$;
+
+create or replace function public.admin_audit() returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  return (select coalesce(jsonb_agg(l order by l.created_at desc), '[]'::jsonb) from (
+    select actor, action, detail, created_at from public.admin_audit_log order by created_at desc limit 200) l);
+end $$;
+
+revoke all on function public.is_admin(), public.admin_overview(), public.admin_audit() from public;
+grant execute on function public.is_admin(), public.admin_overview(), public.admin_audit() to authenticated;

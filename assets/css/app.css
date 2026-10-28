@@ -107,3 +107,10 @@ body.noscroll{overflow:hidden}
 .linkbox{display:flex;gap:8px;align-items:center}
 .linkbox input{flex:1;min-width:0;border:1px solid var(--line);border-radius:999px;padding:10px 16px;font-size:13px;background:#fff;outline:none}
 .ctag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:1px 8px;margin-left:6px}
+/* Admin page */
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:18px 0 26px}
+.statgrid .stat{padding:16px 16px 12px}.statgrid .stat b{font-size:32px}.statgrid .stat span{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin-top:4px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:400;padding:8px 10px;border-bottom:1.5px solid #000}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
