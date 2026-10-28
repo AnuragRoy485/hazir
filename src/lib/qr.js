@@ -12,9 +12,10 @@ export function loadQr() {
   return ready;
 }
 
-/** Draws the invite QR on a canvas: white card, dark modules, "Hazir." caption below the
- * code (never on top of it, so the pattern stays clear). */
-export async function drawQr(cv, link) {
+/** Draws the invite QR on a canvas: white card, dark modules, with the event name,
+ * date/time and host around the code (never on top of it, so the pattern stays clear
+ * and scannable). meta: { title, date, time, host } - missing pieces are simply left out. */
+export async function drawQr(cv, link, meta = {}) {
   const qrcode = await loadQr();
   const q = qrcode(0, 'M');
   q.addData(link);
@@ -22,14 +23,25 @@ export async function drawQr(cv, link) {
   const n = q.getModuleCount(), W = cv.width, H = cv.height;
   const x = cv.getContext('2d');
   x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
-  const quiet = 4, cell = Math.floor(Math.min(W - 80, H - 170) / (n + quiet * 2));
-  const span = cell * n, off = Math.round((W - span) / 2), top = 44;
+  const serif = 'Georgia, "Times New Roman", serif';
+  const fit = (t, font, maxW) => {
+    x.font = font; t = String(t);
+    if (x.measureText(t).width <= maxW) return t;
+    while (t.length > 4 && x.measureText(t + '\u2026').width > maxW) t = t.slice(0, -1);
+    return t.trim() + '\u2026';
+  };
+  const quiet = 4, cell = Math.floor(Math.min(W - 80, H - 300) / (n + quiet * 2));
+  const span = cell * n, off = Math.round((W - span) / 2);
+  let top = 44;
+  x.textAlign = 'center';
+  if (meta.title) { x.fillStyle = '#1c1a17'; x.fillText(fit(meta.title, `700 34px ${serif}`, W - 90), W / 2, top + 18); top += 46; }
+  const when = [meta.date, meta.time].filter(Boolean).join(' \u00b7 ');
+  if (when) { x.fillStyle = '#8a857a'; x.fillText(fit(when, `400 24px ${serif}`, W - 90), W / 2, top + 14); top += 38; }
+  top += 8;
   x.fillStyle = '#1c1a17';
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) x.fillRect(off + c * cell, top + r * cell, cell, cell);
-  x.textAlign = 'center';
-  x.font = 'italic 700 46px Georgia, "Times New Roman", serif';
-  x.fillText('Hazir.', W / 2, top + span + 70);
-  x.font = '400 22px Georgia, "Times New Roman", serif';
-  x.fillStyle = '#8a857a';
-  x.fillText('Scan to RSVP', W / 2, top + span + 108);
+  let below = top + span;
+  if (meta.host) { below += 44; x.fillStyle = '#1c1a17'; x.fillText(fit('Hosted by ' + meta.host, `italic 400 26px ${serif}`, W - 90), W / 2, below); }
+  below += 48; x.fillStyle = '#1c1a17'; x.font = `italic 700 40px ${serif}`; x.fillText('Hazir.', W / 2, below);
+  below += 36; x.font = `400 20px ${serif}`; x.fillStyle = '#8a857a'; x.fillText('Scan to RSVP', W / 2, below);
 }

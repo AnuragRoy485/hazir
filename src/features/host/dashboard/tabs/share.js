@@ -14,8 +14,8 @@ export async function share(p){
   p.innerHTML=`<div class="card reveal in"><h4>Open invite link</h4><p class="muted">Anyone with this link can answer. They see only the event name, date and deadline. Never other guests.</p>
     <div class="linkbox"><input readonly value="${link}"><button class="btn btn-sm" id="cl">Copy</button></div>
     <div class="row"><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${link}">Preview guest page</a><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('You are invited to '+ev.title+' on '+fmtDate(ev.event_date)+'. Please RSVP: '+link)}">Share on WhatsApp</a></div></div>
-   <div class="card reveal in"><h4>QR code</h4><p class="muted">Guests point their phone camera at it and your RSVP page opens. The Hazir name sits below the code, keeping the pattern clear.</p>
-    <div class="qrbox"><canvas id="qr" width="640" height="780" role="img" aria-label="QR code that opens the invite link"></canvas></div>
+   <div class="card reveal in"><h4>QR code</h4><p class="muted">Guests point their phone camera at it and your RSVP page opens. The event name, date, time and host sit around the code, keeping the pattern clear.</p>
+    <div class="qrbox"><canvas id="qr" width="640" height="960" role="img" aria-label="QR code that opens the invite link"></canvas></div>
     <div class="row"><button class="btn btn-ghost btn-sm" id="qsh">Share QR image</button><button class="btn btn-ghost btn-sm" id="qdl">Download PNG</button></div>
     <p class="muted" id="qshnote" hidden>Your browser cannot send the image directly, so the caption was copied and the image downloaded - attach it in any app.</p></div>
    <div class="card reveal in"><h4>Personal links</h4><p class="muted">Each named guest gets their own link, so you know exactly who answered and they cannot answer as someone else.</p>
@@ -26,7 +26,7 @@ export async function share(p){
     <div class="row"><button class="btn btn-ghost btn-sm" id="tg">${ev.rsvp_closed?'Reopen RSVPs':'Close RSVPs now'}</button><button class="btn btn-ghost btn-sm" id="dup">Duplicate event</button></div></div>
    <div class="card danger reveal in"><h4>Delete event</h4><p class="muted">Removes the event, all guests and all answers permanently.</p><button class="btn btn-ghost btn-sm" id="del">Delete event</button></div>`;
   $('#cl').onclick=()=>copy(link,'Link copied');
-  const cv=$('#qr');if(cv){try{await drawQr(cv,link);cv.dataset.done='1'}catch(e){cv.closest('.qrbox').innerHTML='<p class="muted">The QR code could not be drawn here.</p>'}}
+  const cv=$('#qr');if(cv){try{await drawQr(cv,link,{title:ev.title,date:fmtDate(ev.event_date),time:ev.default_time?fmtTime(ev.default_time):'',host:ev.host_name||''});cv.dataset.done='1'}catch(e){cv.closest('.qrbox').innerHTML='<p class="muted">The QR code could not be drawn here.</p>'}}
   const qdl=$('#qdl');if(qdl)qdl.onclick=()=>{const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download='hazir-invite-qr.png';a.click()};
   const qsh=$('#qsh');if(qsh)qsh.onclick=async()=>{
     if(!cv||!cv.dataset.done){toast('The QR code is not ready yet',1);return}
