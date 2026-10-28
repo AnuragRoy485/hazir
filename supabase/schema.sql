@@ -1059,3 +1059,26 @@ end $$;
 drop trigger if exists events_protect_owner on public.events;
 create trigger events_protect_owner before update on public.events
   for each row execute function public.events_protect_owner();
+
+-- Migration 19: admin sets a new password directly (replaces the email-reset flow
+-- in the dashboard). Runs with database privileges, so no privileged key ever
+-- reaches the browser. The existing password is never read; the new one is only
+-- bcrypt-hashed into auth.users and is never written to the audit log. All live
+-- sessions are dropped so the old password stops working immediately.
+create or replace function public.admin_set_password(p_user_id uuid, p_password text) returns void
+language plpgsql security definer set search_path = public, auth, extensions as $$
+declare v_uid uuid := auth.uid(); v_mail text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if p_password is null or char_length(p_password) < 8 or char_length(p_password) > 72 then
+    raise exception 'password must be 8 to 72 characters'; end if;
+  select email into v_mail from auth.users where id = p_user_id;
+  if v_mail is null then raise exception 'no account with that id'; end if;
+  update auth.users set encrypted_password = extensions.crypt(p_password, extensions.gen_salt('bf')), updated_at = now()
+    where id = p_user_id;
+  delete from auth.sessions where user_id = p_user_id;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_set_password', jsonb_build_object('user', v_mail));
+end $$;
+revoke all on function public.admin_set_password(uuid, text) from public;
+grant execute on function public.admin_set_password(uuid, text) to authenticated;

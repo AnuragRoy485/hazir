@@ -1,7 +1,7 @@
 // Super-admin page: overview plus confirmation-gated CRUD over users and events.
 // Every read and mutation goes through server-enforced RPCs that check the admin
 // role and write an audit row. No client-side role checks are trusted. Deletions
-// require typing a confirmation word; passwords are never shown or editable.
+// require typing a confirmation word; existing passwords are never shown or retrievable - the admin can only set a NEW one.
 import { auth } from '../lib/auth.js';
 import { request } from '../lib/http.js';
 import { rpc } from '../lib/db.js';
@@ -19,7 +19,7 @@ function nav(name) {
 const shell = html => { root.innerHTML = `<section class="evpage">${html}</section>`; };
 const ts = v => v ? new Date(v).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
 
-const LABELS = { admin_overview: 'Viewed the overview', admin_update_user: 'Edited a host', admin_delete_user: 'Deleted a host', admin_update_event: 'Edited an event', admin_delete_event: 'Deleted an event', admin_view_event: 'Viewed RSVP details', admin_delete_users: 'Deleted hosts in bulk', admin_delete_events: 'Deleted events in bulk', admin_update_response: 'Edited a guest answer', admin_delete_response: 'Deleted a guest answer', admin_add_invitee: 'Added a guest', admin_delete_invitee: 'Removed a guest', admin_add_response: 'Recorded a guest answer', admin_create_event: 'Created an event', admin_request_password_reset: 'Sent a password-reset email' };
+const LABELS = { admin_overview: 'Viewed the overview', admin_update_user: 'Edited a host', admin_delete_user: 'Deleted a host', admin_update_event: 'Edited an event', admin_delete_event: 'Deleted an event', admin_view_event: 'Viewed RSVP details', admin_delete_users: 'Deleted hosts in bulk', admin_delete_events: 'Deleted events in bulk', admin_update_response: 'Edited a guest answer', admin_delete_response: 'Deleted a guest answer', admin_add_invitee: 'Added a guest', admin_delete_invitee: 'Removed a guest', admin_add_response: 'Recorded a guest answer', admin_create_event: 'Created an event', admin_request_password_reset: 'Sent a password-reset email', admin_set_password: 'Set a new password' };
 function describe(l) {
   const d = l.detail || {};
   switch (l.action) {
@@ -37,6 +37,7 @@ function describe(l) {
     case 'admin_add_response': return `Recorded an answer for "${d.guest || ''}" for "${d.event || ''}"`;
     case 'admin_create_event': return `Created the event "${d.title || ''}" for ${d.host || 'a host'}`;
     case 'admin_request_password_reset': return `Sent a password-reset email to ${d.user || 'a host'}`;
+    case 'admin_set_password': return `Set a new password for ${d.user || 'a host'}`;
     default: return LABELS[l.action] || l.action.replace(/_/g, ' ');
   }
 }
@@ -95,13 +96,13 @@ async function paint() {
       <div class="row toolbar"><input class="srch" id="sh" placeholder="Search hosts" autocomplete="off"><button class="btn btn-ghost btn-sm bulkbar" id="bdh" hidden>Delete selected</button></div>
       <div class="tblwrap"><table class="tbl cardsm"><thead><tr><th><input type="checkbox" id="sah" aria-label="Select all hosts"></th><th>Name</th><th>Email</th><th>Events</th><th>Joined</th><th>Last sign-in</th><th></th></tr></thead>
       <tbody id="tbh">${hosts.map(u => `<tr><td class="nolabel"><input type="checkbox" data-su="${u.id}" data-m="${esc(u.email || '')}"></td><td data-l="Name">${esc(u.name || 'Not set')}</td><td data-l="Email">${esc(u.email || '')}</td><td data-l="Events">${u.events}</td><td data-l="Joined">${ts(u.created_at)}</td><td data-l="Last sign-in">${ts(u.last_sign_in_at)}</td>
-        <td class="row"><button class="mini" data-vu="${u.id}">View</button><button class="mini" data-eu="${u.id}" data-n="${esc(u.name || '')}">Edit</button><button class="mini" data-rp="${esc(u.email || '')}">Reset</button><button class="mini" data-du="${u.id}" data-m="${esc(u.email || '')}">Delete</button></td></tr>`).join('') || '<tr><td colspan="7" class="muted">No hosts yet.</td></tr>'}</tbody></table></div></div>
+        <td class="row"><button class="mini" data-vu="${u.id}">View</button><button class="mini" data-eu="${u.id}" data-n="${esc(u.name || '')}">Edit</button><button class="mini" data-sp="${u.id}" data-m="${esc(u.email || '')}">Set password</button><button class="mini" data-du="${u.id}" data-m="${esc(u.email || '')}">Delete</button></td></tr>`).join('') || '<tr><td colspan="7" class="muted">No hosts yet.</td></tr>'}</tbody></table></div></div>
     ${tests.length ? `<div class="card reveal in testcard"><h4>Test accounts</h4>
       <p class="muted">Created by automated checks during development. Kept for the record; removal needs your approval.</p>
       <div class="row toolbar"><input class="srch" id="st" placeholder="Search test accounts" autocomplete="off"><button class="btn btn-ghost btn-sm bulkbar" id="bdt" hidden>Delete selected</button></div>
       <div class="tblwrap"><table class="tbl cardsm"><thead><tr><th><input type="checkbox" id="sat" aria-label="Select all test accounts"></th><th>Email</th><th>Events</th><th>Created</th><th></th></tr></thead>
       <tbody id="tbt">${tests.map(u => `<tr><td class="nolabel"><input type="checkbox" data-su="${u.id}" data-m="${esc(u.email || '')}"></td><td data-l="Email">${esc(u.email || '')}</td><td data-l="Events">${u.events}</td><td data-l="Created">${ts(u.created_at)}</td>
-        <td class="row"><button class="mini" data-rp="${esc(u.email || '')}">Reset</button><button class="mini" data-du="${u.id}" data-m="${esc(u.email || '')}">Delete</button></td></tr>`).join('')}</tbody></table></div></div>` : ''}
+        <td class="row"><button class="mini" data-sp="${u.id}" data-m="${esc(u.email || '')}">Set password</button><button class="mini" data-du="${u.id}" data-m="${esc(u.email || '')}">Delete</button></td></tr>`).join('')}</tbody></table></div></div>` : ''}
     <div class="card reveal in"><h4>Events</h4>
       <div class="row toolbar"><button class="btn btn-ghost btn-sm" id="ne">New event for a host</button></div>
       <div class="row toolbar"><input class="srch" id="se" placeholder="Search events or hosts" autocomplete="off"><select class="srch sel" id="fev"><option value="all">All dates</option><option value="up">Upcoming</option><option value="past">Past</option></select><button class="btn btn-ghost btn-sm bulkbar" id="bde" hidden>Delete selected</button></div>
@@ -149,6 +150,16 @@ function wire(ov) {
     if (!okd) return;
     try { await rpc('admin_delete_user', { p_user_id: b.dataset.du }); again('Host deleted'); }
     catch (e) { toast(e.message || 'Delete failed', 1); }
+  });
+  $$('[data-sp]').forEach(b => b.onclick = async () => {
+    const out = await editDialog('Set a new password', [{ key: 'pw', label: 'New password for ' + b.dataset.m, value: '', max: 72, type: 'password' }]);
+    if (!out) return;
+    const pw = out.pw || '';
+    if (pw.length < 8) { toast('Password must be at least 8 characters', 1); return; }
+    const okd = await confirmBox({ title: 'Change this password?', body: `"${b.dataset.m}" will need the new password to sign in from now on. Their current sessions are signed out. The password is never shown or stored in plain text.`, ok: 'Set password', danger: true });
+    if (!okd) return;
+    try { await rpc('admin_set_password', { p_user_id: b.dataset.sp, p_password: pw }); toast('Password updated'); }
+    catch (e) { toast(e.message || 'Could not set the password', 1); }
   });
   $$('[data-rp]').forEach(b => b.onclick = async () => {
     const okd = await confirmBox({ title: 'Reset this password?', body: `"${b.dataset.rp}" will get an email with a link to choose a new password. Their current password stays hidden and keeps working until they finish the reset.`, ok: 'Email reset link' });
