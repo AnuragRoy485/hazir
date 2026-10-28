@@ -68,7 +68,7 @@ try {
   ok('guest page does not expose other guests or host controls', !/Vikram|Check in|Export/.test(pageText));
   await g.page.click("#kpl"); await g.page.type('[data-ci="0"]', 'Meera Rao');
   await g.page.type('#nt', 'Window seat please'); await g.page.click('#sb');
-  await g.page.waitForSelector('.done', { timeout: 15000 });
+  await g.page.waitForSelector('.rsvpdone', { timeout: 15000 });
   ok('guest RSVP submitted from a separate session', true);
 
   // Host A sees it live (reload dashboard)
