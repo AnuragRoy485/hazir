@@ -20,7 +20,12 @@ export async function drawQr(cv, link, meta = {}) {
   const q = qrcode(0, 'M');
   q.addData(link);
   q.make();
-  const n = q.getModuleCount(), W = cv.width, H = cv.height;
+  const n = q.getModuleCount(), W = cv.width;
+  const quiet0 = 4, cell0 = Math.floor((W - 80) / (n + quiet0 * 2));
+  const headH = 44 + (meta.title ? 46 : 0) + ((meta.date || meta.time) ? 38 : 0) + 8;
+  const footH = (meta.host ? 44 : 0) + 48 + 36 + 30;
+  const H = headH + cell0 * n + footH;
+  cv.height = H;
   const x = cv.getContext('2d');
   x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
   const serif = 'Georgia, "Times New Roman", serif';
@@ -30,7 +35,7 @@ export async function drawQr(cv, link, meta = {}) {
     while (t.length > 4 && x.measureText(t + '\u2026').width > maxW) t = t.slice(0, -1);
     return t.trim() + '\u2026';
   };
-  const quiet = 4, cell = Math.floor(Math.min(W - 80, H - 300) / (n + quiet * 2));
+  const quiet = quiet0, cell = cell0;
   const span = cell * n, off = Math.round((W - span) / 2);
   let top = 44;
   x.textAlign = 'center';

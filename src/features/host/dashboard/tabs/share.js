@@ -15,7 +15,7 @@ export async function share(p){
     <div class="linkbox"><input readonly value="${link}"><button class="btn btn-sm" id="cl">Copy</button></div>
     <div class="row"><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${link}">Preview guest page</a><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('You are invited to '+ev.title+' on '+fmtDate(ev.event_date)+'. Please RSVP: '+link)}">Share on WhatsApp</a></div></div>
    <div class="card reveal in"><h4>QR code</h4><p class="muted">Guests point their phone camera at it and your RSVP page opens. The event name, date, time and host sit around the code, keeping the pattern clear.</p>
-    <div class="qrbox"><canvas id="qr" width="640" height="960" role="img" aria-label="QR code that opens the invite link"></canvas></div>
+    <div class="qrbox"><canvas id="qr" width="640" height="880" role="img" aria-label="QR code that opens the invite link"></canvas></div>
     <div class="row"><button class="btn btn-ghost btn-sm" id="qsh">Share QR image</button><button class="btn btn-ghost btn-sm" id="qdl">Download PNG</button></div>
     <p class="muted" id="qshnote" hidden>Your browser cannot send the image directly, so the caption was copied and the image downloaded - attach it in any app.</p></div>
    <div class="card reveal in"><h4>Personal links</h4><p class="muted">Each named guest gets their own link, so you know exactly who answered and they cannot answer as someone else.</p>

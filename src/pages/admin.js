@@ -156,7 +156,7 @@ function wire(ov) {
     if (!out) return;
     const pw = out.pw || '';
     if (pw.length < 8) { toast('Password must be at least 8 characters', 1); return; }
-    const okd = await confirmBox({ title: 'Change this password?', body: `"${b.dataset.m}" will need the new password to sign in from now on. Their current sessions are signed out. The password is never shown or stored in plain text.`, ok: 'Set password', danger: true });
+    const okd = await confirmBox({ title: 'Change this password?', body: `"${b.dataset.m}" will need the new password to sign in from now on. Their signed-in sessions cannot renew and expire within about an hour. The password is never shown or stored in plain text.`, ok: 'Set password', danger: true });
     if (!okd) return;
     try { await rpc('admin_set_password', { p_user_id: b.dataset.sp, p_password: pw }); toast('Password updated'); }
     catch (e) { toast(e.message || 'Could not set the password', 1); }
