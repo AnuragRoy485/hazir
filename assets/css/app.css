@@ -122,3 +122,4 @@ body.noscroll{overflow:hidden}
 .srch.sel{flex:0 0 auto;max-width:none;appearance:auto}
 input[type="checkbox"]{width:16px;height:16px;accent-color:#000;cursor:pointer}
 .bulkbar{border-color:#000}
+.dlg-wide{max-width:640px;max-height:88vh;overflow-y:auto;text-align:left}

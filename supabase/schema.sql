@@ -638,3 +638,65 @@ end $$;
 
 revoke all on function public.admin_delete_users(uuid[]), public.admin_delete_events(text[]) from public;
 grant execute on function public.admin_delete_users(uuid[]), public.admin_delete_events(text[]) to authenticated;
+
+-- Migration 13: full event editing for admins - every field a host can edit,
+-- same validation limits as the events table itself.
+create or replace function public.admin_update_event(p_event_id text, p_patch jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if not exists (select 1 from public.events where id = p_event_id) then raise exception 'event not found'; end if;
+  if p_patch ? 'title' and (char_length(trim(p_patch->>'title')) = 0 or char_length(p_patch->>'title') > 80) then
+    raise exception 'title must be 1-80 characters'; end if;
+  update public.events set
+    title = case when p_patch ? 'title' then trim(p_patch->>'title') else title end,
+    occasion = case when p_patch ? 'occasion' then left(trim(p_patch->>'occasion'),40) else occasion end,
+    event_date = case when p_patch ? 'event_date' then (p_patch->>'event_date')::date else event_date end,
+    host_name = case when p_patch ? 'host_name' then nullif(left(trim(p_patch->>'host_name'),40),'') else host_name end,
+    invited = case when p_patch ? 'invited' then greatest(1, least(5000, (p_patch->>'invited')::int)) else invited end,
+    venue = case when p_patch ? 'venue' then nullif(left(trim(p_patch->>'venue'),120),'') else venue end,
+    max_party = case when p_patch ? 'max_party' then greatest(1, least(10, (p_patch->>'max_party')::int)) else max_party end,
+    message = case when p_patch ? 'message' then nullif(left(trim(p_patch->>'message'),300),'') else message end,
+    default_time = case when p_patch ? 'default_time' then greatest(0, least(1439, (p_patch->>'default_time')::int)) else default_time end,
+    deadline_at = case when p_patch ? 'deadline_at' then nullif(p_patch->>'deadline_at','')::timestamptz else deadline_at end,
+    tz = case when p_patch ? 'tz' then nullif(trim(p_patch->>'tz'),'') else tz end,
+    rsvp_closed = case when p_patch ? 'rsvp_closed' then (p_patch->>'rsvp_closed')::boolean else rsvp_closed end
+  where id = p_event_id;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_update_event', jsonb_build_object('event', p_event_id, 'fields', (select jsonb_object_agg(key, true) from jsonb_object_keys(p_patch) key)));
+end $$;
+
+-- Overview now returns every editable event field so the admin edit form is complete.
+create or replace function public.admin_overview() returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  insert into public.admin_audit_log (actor, action) values (v_uid, 'admin_overview');
+  return jsonb_build_object(
+    'totals', jsonb_build_object(
+      'users', (select count(*) from auth.users),
+      'test_users', (select count(*) from auth.users where email ilike '%@example.com'),
+      'events', (select count(*) from public.events),
+      'guests', (select count(*) from public.invitees),
+      'answers', (select count(*) from public.responses),
+      'banners', (select count(*) from public.events where banner is not null)),
+    'users', (select coalesce(jsonb_agg(u order by u.created_at desc), '[]'::jsonb) from (
+      select au.id, au.email, au.raw_user_meta_data->>'name' as name, au.created_at, au.last_sign_in_at,
+        (au.email ilike '%@example.com') as is_test,
+        (select count(*) from public.events e where e.owner = au.id) as events
+      from auth.users au order by au.created_at desc limit 100) u),
+    'events', (select coalesce(jsonb_agg(v order by v.created_at desc), '[]'::jsonb) from (
+      select e.id, e.title, e.occasion, e.event_date, e.host_name, e.invited, e.venue, e.max_party,
+        e.message, e.default_time, e.deadline_at, e.tz, e.rsvp_closed, e.created_at,
+        (select email from auth.users au where au.id = e.owner) as host_email,
+        (select count(*) from public.invitees i where i.event_id = e.id) as guests,
+        (select count(*) from public.responses r where r.event_id = e.id) as answers,
+        (select count(*) from public.responses r where r.event_id = e.id and r.attending) as coming,
+        (e.banner is not null) as has_banner
+      from public.events e order by e.created_at desc limit 200) v));
+end $$;
+
+revoke all on function public.admin_update_event(text, jsonb) from public;
+grant execute on function public.admin_update_event(text, jsonb) to authenticated;

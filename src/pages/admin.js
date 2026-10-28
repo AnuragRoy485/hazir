@@ -5,7 +5,7 @@
 import { auth } from '../lib/auth.js';
 import { rpc } from '../lib/db.js';
 import { $, $$, initEffects, confirmBox, toast } from '../lib/ui.js';
-import { esc, fmtDate, fmtTime } from '../lib/format.js';
+import { esc, fmtDate, fmtTime, OCCASIONS, TZS, zonedToIso, isoToZoned, guestLink } from '../lib/format.js';
 
 const root = $('#root'), navr = $('#navr');
 
@@ -140,20 +140,7 @@ function wire(ov) {
     catch (e) { toast(e.message || 'Delete failed', 1); }
   });
   wireEventViews();
-  $$('[data-ee]').forEach(b => b.onclick = async () => {
-    const ev = (ov.events || []).find(x => x.id === b.dataset.ee);
-    if (!ev) return;
-    const out = await editDialog('Edit event', [
-      { key: 'title', label: 'Event name', value: ev.title, max: 80 },
-      { key: 'occasion', label: 'Occasion', value: ev.occasion || '', max: 40 },
-      { key: 'date', label: 'Date', value: ev.event_date, type: 'date' },
-      { key: 'host', label: 'Hosted by', value: ev.host_name || '', max: 40 }]);
-    if (!out) return;
-    try {
-      await rpc('admin_update_event', { p_event_id: ev.id, p_title: out.title, p_occasion: out.occasion, p_event_date: out.date, p_host_name: out.host });
-      again('Event updated');
-    } catch (e) { toast(e.message || 'Update failed', 1); }
-  });
+  $$('[data-ee]').forEach(b => b.onclick = () => editEventFull(ov, b.dataset.ee, again));
   wireFilters();
   $$('[data-de]').forEach(b => b.onclick = async () => {
     const okd = await confirmBox({ title: 'Delete this event?', body: `"${b.dataset.t}", all its guests and all answers will be removed permanently. This cannot be undone.`, ok: 'Delete event', word: 'delete', danger: true });
@@ -161,6 +148,44 @@ function wire(ov) {
     try { await rpc('admin_delete_event', { p_event_id: b.dataset.de }); again('Event deleted'); }
     catch (e) { toast(e.message || 'Delete failed', 1); }
   });
+}
+
+function editEventFull(ov, id, again) {
+  const ev = (ov.events || []).find(x => x.id === id); if (!ev) return;
+  const dz = ev.deadline_at ? isoToZoned(ev.deadline_at, ev.tz || 'Asia/Kolkata') : { date: '', time: '' };
+  const hm = v => `${String(Math.floor((v ?? 1140) / 60)).padStart(2, '0')}:${String((v ?? 1140) % 60).padStart(2, '0')}`;
+  const w = document.createElement('div'); w.className = 'modal-wrap';
+  w.innerHTML = `<div class="dlg-bg"></div><div class="dlg dlg-wide" role="dialog" aria-modal="true"><h3>Edit event</h3>
+    <label class="field">Event name<input id="ef-title" maxlength="80" value="${esc(ev.title)}"></label>
+    <div class="two"><label class="field">Occasion<select id="ef-occasion">${OCCASIONS.map(x => `<option${x === ev.occasion ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
+    <label class="field">Date<input id="ef-date" type="date" value="${ev.event_date || ''}"></label></div>
+    <div class="two"><label class="field">Hosted by<input id="ef-host" maxlength="40" value="${esc(ev.host_name || '')}"></label>
+    <label class="field">Guests invited<input id="ef-invited" type="number" min="1" max="5000" value="${ev.invited ?? 100}"></label></div>
+    <div class="two"><label class="field">Hosted at (optional)<input id="ef-venue" maxlength="120" value="${esc(ev.venue || '')}"></label>
+    <label class="field">Plus-ones up to<select id="ef-maxp">${[1,2,3,4,6,8,10].map(x => `<option${x === ev.max_party ? ' selected' : ''}>${x}</option>`).join('')}</select></label></div>
+    <div class="two"><label class="field">RSVP closes on (optional)<input id="ef-dld" type="date" value="${dz.date}"></label>
+    <label class="field">At what time<input id="ef-dlt" type="time" value="${dz.time}"></label></div>
+    <label class="field">Timezone for the deadline<select id="ef-tz">${TZS.map(x => `<option${x === ev.tz ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
+    <label class="field">Message to guests (optional)<textarea id="ef-msg" rows="3" maxlength="300">${esc(ev.message || '')}</textarea></label>
+    <div class="two"><label class="field">Usual arrival time<input id="ef-time" type="time" value="${hm(ev.default_time)}"></label>
+    <label class="field">RSVPs<select id="ef-closed"><option value="open"${!ev.rsvp_closed ? ' selected' : ''}>Open</option><option value="closed"${ev.rsvp_closed ? ' selected' : ''}>Closed</option></select></label></div>
+    <div class="row end"><button class="btn btn-ghost btn-sm" id="ec">Cancel</button><button class="btn btn-sm" id="eo">Save</button></div></div>`;
+  document.body.appendChild(w); document.body.classList.add('noscroll');
+  requestAnimationFrame(() => w.classList.add('in'));
+  const done = () => { w.classList.remove('in'); document.body.classList.remove('noscroll'); setTimeout(() => w.remove(), 250); };
+  w.querySelector('#ec').onclick = done;
+  w.querySelector('#eo').onclick = async () => {
+    const v = id2 => w.querySelector('#' + id2).value;
+    const patch = {
+      title: v('ef-title'), occasion: v('ef-occasion'), event_date: v('ef-date'), host_name: v('ef-host'),
+      invited: parseInt(v('ef-invited') || '100', 10), venue: v('ef-venue'), max_party: parseInt(v('ef-maxp'), 10),
+      message: v('ef-msg'), default_time: (() => { const [h, m] = v('ef-time').split(':').map(Number); return (h || 0) * 60 + (m || 0); })(),
+      deadline_at: v('ef-dld') ? zonedToIso(v('ef-dld'), v('ef-dlt') || '23:59', v('ef-tz')) : '',
+      tz: v('ef-tz'), rsvp_closed: v('ef-closed') === 'closed'
+    };
+    try { await rpc('admin_update_event', { p_event_id: id, p_patch: patch }); done(); again('Event updated'); }
+    catch (e) { toast(e.message || 'Update failed', 1); }
+  };
 }
 
 function wireEventViews() {
@@ -175,9 +200,11 @@ function wireEventViews() {
     const awaiting = inv.filter(i => !answered.has((i.name || '').toLowerCase()));
     detailCard(`<h4>${esc(ev.title || 'Event')}</h4>
       <p class="muted">${esc(ev.occasion || '')} · ${fmtDate(ev.event_date)} · Host: ${esc(ev.host_email || ev.host_name || '')} · ${res.length} answer${res.length === 1 ? '' : 's'}, ${awaiting.length} awaiting</p>
+      <div class="linkbox" style="margin-bottom:14px"><input readonly value="${guestLink({ id: ev.id })}"><button class="btn btn-sm" id="adcopy">Copy</button></div>
       ${res.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Name</th><th>Status</th><th>Adults</th><th>Kids</th><th>Group</th><th>Meal</th><th>Arrival</th><th>Note</th></tr></thead>
       <tbody>${res.map(r => `<tr><td>${esc(r.name || '')}</td><td>${r.attending ? 'Coming' : 'Declined'}</td><td>${r.attending ? (r.adults ?? r.party ?? '') : ''}</td><td>${r.attending ? (r.kids || 0) : ''}</td><td>${esc(r.grp || '')}</td><td>${esc(r.meal || '')}</td><td>${r.attending && r.arrival != null ? fmtTime(r.arrival) : ''}</td><td>${esc(r.note || '')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No answers yet.</p>'}
       ${awaiting.length ? `<p class="muted">Awaiting: ${awaiting.map(i => esc(i.name)).join(', ')}</p>` : ''}`);
+    const cp = $('#adcopy'); if (cp) cp.onclick = () => { navigator.clipboard.writeText(guestLink({ id: ev.id })).then(() => toast('Link copied')); };
   });
 }
 
