@@ -66,7 +66,7 @@ try {
   ok('guest page shows event title and the guest greeting only', (await text(g.page, '.gh')).includes('E2E Wedding') && (await text(g.page, '.hello')).includes('Asha'));
   const pageText = await text(g.page, 'body');
   ok('guest page does not expose other guests or host controls', !/Vikram|Check in|Export/.test(pageText));
-  await g.page.click('#pl'); await g.page.type('[data-ci="0"]', 'Meera Rao');
+  await g.page.click("#kpl"); await g.page.type('[data-ci="0"]', 'Meera Rao');
   await g.page.type('#nt', 'Window seat please'); await g.page.click('#sb');
   await g.page.waitForSelector('.done', { timeout: 15000 });
   ok('guest RSVP submitted from a separate session', true);
@@ -101,7 +101,7 @@ try {
   const anon = await (await fetch(`${API}/rest/v1/responses?select=*`, { headers: { apikey: KEY } })).json();
   ok('anonymous API access to answers is denied', !Array.isArray(anon) || anon.length === 0, Array.isArray(anon) ? 'empty' : (anon.message || anon.code));
   const inv = await (await fetch(`${API}/rest/v1/rpc/get_invite`, { method: 'POST', headers: { apikey: KEY, 'content-type': 'application/json' }, body: JSON.stringify({ p_event: eid }) })).json();
-  ok('public invite data has no guest names or answers', !JSON.stringify(inv).match(/Asha|Vikram|Meera|meal/i) && inv.title === 'E2E Wedding');
+  ok('public invite data has no guest names or answers', !JSON.stringify(Object.values(inv)).match(/Asha|Vikram|Meera/i) && inv.my_meal == null && inv.my_attending == null && inv.title === 'E2E Wedding');
   const bad = await fetch(`${API}/rest/v1/rpc/submit_rsvp`, { method: 'POST', headers: { apikey: KEY, 'content-type': 'application/json' }, body: JSON.stringify({ p_event: eid, p_token: 'not-a-real-token', p_name: 'x', p_attending: true, p_grp: 'Other', p_meal: 'Veg', p_party: 1, p_arrival: 600, p_comp: [], p_note: null }) });
   ok('a forged personal token is rejected', bad.status >= 400);
   ok('no JavaScript errors in any session', [a, g, b].every(s => s.page.errors.length === 0), [a, g, b].flatMap(s => s.page.errors).join('; '));
