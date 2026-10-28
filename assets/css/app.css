@@ -1,5 +1,5 @@
 .appbody{background:#fff}
-.shell{max-width:1180px;margin:0 auto;padding:110px clamp(16px,4vw,48px) 80px;min-height:100vh}
+.shell{max-width:1180px;margin:0 auto;padding:110px clamp(16px,4vw,48px) 80px;min-height:60vh}
 .shell.narrow{max-width:640px}
 .navr{display:flex;align-items:center;gap:14px}.who{font-size:14px;color:var(--mut);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .authwrap{display:flex;justify-content:center;padding-top:2vh}.authcard{width:min(460px,100%)}
