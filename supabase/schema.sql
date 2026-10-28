@@ -569,3 +569,28 @@ begin
     from public.admin_audit_log a left join auth.users au on au.id = a.actor
     order by a.created_at desc limit 200) l);
 end $$;
+
+-- Migration 11: admin event drill-down. Returns one event with its named guests and
+-- full answer detail for the admin's "see detailed RSVP" view. Private edit tokens
+-- and personal-link tokens are never selected.
+create or replace function public.admin_event_detail(p_event_id text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_ev public.events;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  select * into v_ev from public.events where id = p_event_id;
+  if v_ev.id is null then raise exception 'event not found'; end if;
+  insert into public.admin_audit_log (actor, action, detail) values (v_uid, 'admin_view_event', jsonb_build_object('title', v_ev.title));
+  return jsonb_build_object(
+    'event', jsonb_build_object('id', v_ev.id, 'title', v_ev.title, 'occasion', v_ev.occasion,
+      'event_date', v_ev.event_date, 'host_name', v_ev.host_name, 'created_at', v_ev.created_at,
+      'host_email', (select email from auth.users where id = v_ev.owner)),
+    'invitees', (select coalesce(jsonb_agg(i order by i.name), '[]'::jsonb) from (
+      select id, name from public.invitees where event_id = p_event_id) i),
+    'responses', (select coalesce(jsonb_agg(r order by r.created_at desc), '[]'::jsonb) from (
+      select name, attending, party, adults, kids, grp, meal, arrival, note, checked_in, created_at
+      from public.responses where event_id = p_event_id) r));
+end $$;
+
+revoke all on function public.admin_event_detail(text) from public;
+grant execute on function public.admin_event_detail(text) to authenticated;

@@ -5,7 +5,7 @@
 import { auth } from '../lib/auth.js';
 import { rpc } from '../lib/db.js';
 import { $, $$, initEffects, confirmBox, toast } from '../lib/ui.js';
-import { esc, fmtDate } from '../lib/format.js';
+import { esc, fmtDate, fmtTime } from '../lib/format.js';
 
 const root = $('#root'), navr = $('#navr');
 
@@ -81,7 +81,7 @@ async function paint() {
       <p class="muted">${hosts.length} real host${hosts.length === 1 ? '' : 's'}${tests.length ? ` · ${tests.length} test account${tests.length === 1 ? '' : 's'} from automated checks listed below` : ''}.</p>
       <div class="tblwrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Events</th><th>Joined</th><th>Last sign-in</th><th></th></tr></thead>
       <tbody>${hosts.map(u => `<tr><td>${esc(u.name || 'Not set')}</td><td>${esc(u.email || '')}</td><td>${u.events}</td><td>${ts(u.created_at)}</td><td>${ts(u.last_sign_in_at)}</td>
-        <td class="row"><button class="mini" data-eu="${u.id}" data-n="${esc(u.name || '')}">Edit</button><button class="mini" data-du="${u.id}" data-m="${esc(u.email || '')}">Delete</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No hosts yet.</td></tr>'}</tbody></table></div></div>
+        <td class="row"><button class="mini" data-vu="${u.id}">View</button><button class="mini" data-eu="${u.id}" data-n="${esc(u.name || '')}">Edit</button><button class="mini" data-du="${u.id}" data-m="${esc(u.email || '')}">Delete</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No hosts yet.</td></tr>'}</tbody></table></div></div>
     ${tests.length ? `<div class="card reveal in testcard"><h4>Test accounts</h4>
       <p class="muted">Created by automated checks during development. Kept for the record; removal needs your approval.</p>
       <div class="tblwrap"><table class="tbl"><thead><tr><th>Email</th><th>Events</th><th>Created</th><th></th></tr></thead>
@@ -90,7 +90,7 @@ async function paint() {
     <div class="card reveal in"><h4>Events</h4>
       <div class="tblwrap"><table class="tbl"><thead><tr><th>Event</th><th>Host</th><th>Date</th><th>Guests</th><th>Answers</th><th>Coming</th><th>Banner</th><th></th></tr></thead>
       <tbody>${(ov.events || []).map(e => `<tr><td>${esc(e.title)}</td><td>${esc(e.host_email || e.host_name || '')}</td><td>${fmtDate(e.event_date)}</td><td>${e.guests}</td><td>${e.answers}</td><td>${e.coming}</td><td>${e.has_banner ? 'Yes' : '-'}</td>
-        <td class="row"><button class="mini" data-ee="${e.id}">Edit</button><button class="mini" data-de="${e.id}" data-t="${esc(e.title)}">Delete</button></td></tr>`).join('')}</tbody></table></div></div>
+        <td class="row"><button class="mini" data-ve="${e.id}">View</button><button class="mini" data-ee="${e.id}">Edit</button><button class="mini" data-de="${e.id}" data-t="${esc(e.title)}">Delete</button></td></tr>`).join('')}</tbody></table></div></div>
     <div class="card reveal in"><h4>Admin activity</h4>
       <p class="muted">Every admin lookup and change is recorded here automatically.</p>
       <div class="tblwrap"><table class="tbl"><thead><tr><th>When</th><th>What happened</th><th>By</th></tr></thead>
@@ -98,7 +98,27 @@ async function paint() {
   wire(ov);
 }
 
+function detailCard(html) {
+  const old = $('#adetail'); if (old) old.remove();
+  const d = document.createElement('div'); d.id = 'adetail'; d.className = 'card reveal in';
+  d.innerHTML = html + '<div class="row"><button class="btn btn-ghost btn-sm" id="adclose">Close</button></div>';
+  const anchor = $('#root .evpage'); anchor.insertBefore(d, anchor.children[2] || null);
+  d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#adclose').onclick = () => d.remove();
+}
+
 function wire(ov) {
+  $$('[data-vu]').forEach(b => b.onclick = () => {
+    const u = (ov.users || []).find(x => x.id === b.dataset.vu); if (!u) return;
+    const evs = (ov.events || []).filter(e => (e.host_email || '') === (u.email || ''));
+    detailCard(`<h4>Host profile</h4>
+      <p><b>${esc(u.name || 'Not set')}</b><br><span class="muted">${esc(u.email || '')}</span></p>
+      <p class="muted">Joined ${ts(u.created_at)} · Last sign-in ${ts(u.last_sign_in_at)} · ${u.events} event${u.events === 1 ? '' : 's'}</p>
+      ${evs.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Guests</th><th>Answers</th><th>Coming</th><th></th></tr></thead>
+      <tbody>${evs.map(e => `<tr><td>${esc(e.title)}</td><td>${fmtDate(e.event_date)}</td><td>${e.guests}</td><td>${e.answers}</td><td>${e.coming}</td>
+        <td><button class="mini" data-ve="${e.id}">View</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No events.</p>'}`);
+    wireEventViews();
+  });
   const again = async (msg) => { if (msg) toast(msg); await paint(); };
   $$('[data-eu]').forEach(b => b.onclick = async () => {
     const out = await editDialog('Edit host name', [{ key: 'name', label: 'Display name', value: b.dataset.n, max: 40 }]);
@@ -112,6 +132,7 @@ function wire(ov) {
     try { await rpc('admin_delete_user', { p_user_id: b.dataset.du }); again('Host deleted'); }
     catch (e) { toast(e.message || 'Delete failed', 1); }
   });
+  wireEventViews();
   $$('[data-ee]').forEach(b => b.onclick = async () => {
     const ev = (ov.events || []).find(x => x.id === b.dataset.ee);
     if (!ev) return;
@@ -131,6 +152,24 @@ function wire(ov) {
     if (!okd) return;
     try { await rpc('admin_delete_event', { p_event_id: b.dataset.de }); again('Event deleted'); }
     catch (e) { toast(e.message || 'Delete failed', 1); }
+  });
+}
+
+function wireEventViews() {
+  $$('[data-ve]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    let det;
+    try { det = await rpc('admin_event_detail', { p_event_id: b.dataset.ve }); }
+    catch (e) { toast(e.message || 'Could not load event', 1); b.disabled = false; return; }
+    b.disabled = false;
+    const ev = det.event || {}, res = det.responses || [], inv = det.invitees || [];
+    const answered = new Set(res.map(r => (r.name || '').toLowerCase()));
+    const awaiting = inv.filter(i => !answered.has((i.name || '').toLowerCase()));
+    detailCard(`<h4>${esc(ev.title || 'Event')}</h4>
+      <p class="muted">${esc(ev.occasion || '')} · ${fmtDate(ev.event_date)} · Host: ${esc(ev.host_email || ev.host_name || '')} · ${res.length} answer${res.length === 1 ? '' : 's'}, ${awaiting.length} awaiting</p>
+      ${res.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Name</th><th>Status</th><th>Adults</th><th>Kids</th><th>Group</th><th>Meal</th><th>Arrival</th><th>Note</th></tr></thead>
+      <tbody>${res.map(r => `<tr><td>${esc(r.name || '')}</td><td>${r.attending ? 'Coming' : 'Declined'}</td><td>${r.attending ? (r.adults ?? r.party ?? '') : ''}</td><td>${r.attending ? (r.kids || 0) : ''}</td><td>${esc(r.grp || '')}</td><td>${esc(r.meal || '')}</td><td>${r.attending && r.arrival != null ? fmtTime(r.arrival) : ''}</td><td>${esc(r.note || '')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No answers yet.</p>'}
+      ${awaiting.length ? `<p class="muted">Awaiting: ${awaiting.map(i => esc(i.name)).join(', ')}</p>` : ''}`);
   });
 }
 
