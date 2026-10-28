@@ -11,7 +11,8 @@ export const fmtTime = m => {
 };
 export const fmtDate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '';
 export const toTimeInput = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
-export const guestLink = (event, token) => `${location.origin}/rsvp.html?e=${event.id}${token ? '&t=' + token : ''}`;
+// The /rsvp route is rendered by api/rsvp.js on Vercel so link previews get per-event tags.
+export const guestLink = (event, token) => `${location.origin}/rsvp?e=${event.id}${token ? '&t=' + token : ''}`;
 
 export const TZS = ['Asia/Kolkata', 'Asia/Dubai', 'Asia/Singapore', 'Europe/London', 'Europe/Paris', 'America/New_York', 'America/Chicago', 'America/Los_Angeles', 'Australia/Sydney', 'UTC'];
 export const browserTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata'; } catch { return 'Asia/Kolkata'; } };

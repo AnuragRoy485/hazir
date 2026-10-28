@@ -48,7 +48,7 @@ try {
   await a.page.type('#l', 'Asha Rao\nVikram Sen');
   await a.page.click('#sv'); await a.page.waitForSelector('.evpage', { timeout: 15000 });
   const link = await a.page.$eval('.linkbox input', e => e.value);
-  ok('event created with a shareable link', /rsvp\.html\?e=[0-9a-f]+$/.test(link), link.replace(/^https?:\/\/[^/]+/, ''));
+  ok('event created with a shareable link', /\/rsvp\?e=[0-9a-f]+$/.test(link), link.replace(/^https?:\/\/[^/]+/, ''));
   const eid = new URL(link).searchParams.get('e');
   const tokenLink = await a.page.$eval('[data-c]', () => null).catch(() => null);
   await a.page.click('[data-c]').catch(() => {});

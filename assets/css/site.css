@@ -200,3 +200,18 @@ textarea{font-family:Georgia,serif}
 .cta-end{text-align:center}.cta-end .lead{margin:0 auto 30px}.cta-end .cta{justify-content:center}
 @media(max-width:900px){.solves{grid-template-columns:1fr 1fr}.nav nav{display:none}}
 @media(max-width:560px){.solves{grid-template-columns:1fr}.login{display:none}}
+
+/* Footer links + credit */
+.footlinks{display:flex;gap:26px;justify-content:center;margin:26px 0 14px;font-size:15px}
+.footlinks a{text-decoration:underline;text-underline-offset:3px;color:var(--mut)}
+.footlinks a:hover{color:#000}
+.foot .credit{font-size:14px;color:var(--mut)}
+.foot .credit a{text-decoration:underline;text-underline-offset:3px}
+.foot .credit a:hover{color:#000}
+/* Legal pages */
+.legal{max-width:720px;margin:0 auto;padding:130px clamp(18px,4vw,40px) 90px}
+.legal h1{font-size:clamp(36px,6vw,56px);margin:6px 0 10px}
+.legal h3{margin:34px 0 8px}
+.legal p,.legal li{font-size:16px;color:#222;margin-bottom:10px;line-height:1.65}
+.legal ul{padding-left:22px;margin-bottom:14px}
+.legal .upd{color:var(--mut);font-size:14px;margin-bottom:8px}

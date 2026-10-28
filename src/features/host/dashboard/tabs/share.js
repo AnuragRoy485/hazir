@@ -2,6 +2,7 @@ import { db } from '../../../../lib/db.js';
 import { $, $$, copy, toast, confirmBox } from '../../../../lib/ui.js';
 import { esc, fmtDate, guestLink, isClosed, fmtDeadline } from '../../../../lib/format.js';
 import { state, niceErr } from '../../ctx.js';
+import { deleteBanner } from '../../../../lib/storage.js';
 import { stats } from '../stats.js';
 import { nudge } from '../nudge.js';
 import { R } from '../../ctx.js';
@@ -21,5 +22,5 @@ export function share(p){
   $$('[data-w]',p).forEach(b=>b.onclick=()=>nudge(state.inv.find(i=>i.id===b.dataset.w)));
   const ca=$('#callw');if(ca)ca.onclick=()=>copy(s.awaitingNames.map(nudgeText).join('\n\n'),'Reminders copied');
   $('#tg').onclick=async()=>{try{await db('events?id=eq.'+ev.id,{method:'PATCH',body:{rsvp_closed:!ev.rsvp_closed}});await R.load(ev.id);R.render();toast(state.ev.rsvp_closed?'RSVPs closed':'RSVPs reopened')}catch(e){toast(niceErr(e),1)}};
-  $('#dup').onclick=async()=>{try{const {id,owner,created_at,...c}=ev;const [n]=await db('events',{method:'POST',body:{...c,title:(ev.title+' (copy)').slice(0,80),rsvp_closed:false}});toast('Duplicated. Guests are not copied.');R.openEvent(n.id)}catch(e){toast(niceErr(e),1)}};
-  $('#del').onclick=async()=>{if(!await confirmBox({title:'Delete this event?',body:'"'+ev.title+'", all its guests and all answers will be removed permanently.',ok:'Delete event',word:'delete',danger:true}))return;try{await db('events?id=eq.'+ev.id,{method:'DELETE',prefer:'return=minimal'});toast('Event deleted');R.listView()}catch(e){toast(niceErr(e),1)}}}
+  $('#dup').onclick=async()=>{try{const {id,owner,created_at,banner,banner_og,...c}=ev;const [n]=await db('events',{method:'POST',body:{...c,title:(ev.title+' (copy)').slice(0,80),rsvp_closed:false}});toast('Duplicated. Guests are not copied.');R.openEvent(n.id)}catch(e){toast(niceErr(e),1)}};
+  $('#del').onclick=async()=>{if(!await confirmBox({title:'Delete this event?',body:'"'+ev.title+'", all its guests and all answers will be removed permanently.',ok:'Delete event',word:'delete',danger:true}))return;try{if(ev.banner||ev.banner_og)await deleteBanner(ev.id,ev.banner,ev.banner_og);await db('events?id=eq.'+ev.id,{method:'DELETE',prefer:'return=minimal'});toast('Event deleted');R.listView()}catch(e){toast(niceErr(e),1)}}}

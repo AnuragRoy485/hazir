@@ -11,7 +11,7 @@ export function authView(mode,msg){
     <p class="eyebrow">${mode==='signup'?'Sign up':mode==='login'?'Log in':'Account'}</p><h2>${t[0]}</h2><p class="muted">${t[1]}</p>
     <div class="msg" id="msg" ${msg?'':'hidden'}>${esc(msg||'')}</div>
     <form id="af" novalidate>
-      ${mode==='signup'?'<label class="field">Your name<input id="an" maxlength="40" autocomplete="name" placeholder="Riya Sharma"></label>':''}
+      ${mode==='signup'?'<label class="field">Your name<input id="an" maxlength="40" autocomplete="name" placeholder="John Doe"></label>':''}
       ${'<label class="field">Email<input id="ae" type="email" autocomplete="email" placeholder="you@example.com" required></label>'}
       ${`<label class="field">Password<input id="ap" type="password" autocomplete="${mode==='login'?'current-password':'new-password'}" minlength="8" placeholder="At least 8 characters" required></label>`}
       <button class="btn full" id="ab">${{login:'Log in',signup:'Create account'}[mode]}</button>

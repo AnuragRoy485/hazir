@@ -1,5 +1,11 @@
 {
   "cleanUrls": false,
+  "rewrites": [
+    { "source": "/rsvp", "destination": "/api/rsvp" }
+  ],
+  "functions": {
+    "api/rsvp.js": { "includeFiles": "rsvp.html" }
+  },
   "headers": [
     { "source": "/(.*)", "headers": [
       { "key": "X-Content-Type-Options", "value": "nosniff" },

@@ -23,7 +23,7 @@ Host (signed in with email and password):
 - Calendar view of all events: days with events are marked, details show on hover, keyboard focus or tap.
 - RSVP closing date, exact time and timezone, enforced on the server. Close or reopen RSVPs manually, duplicate an event, add a venue and a message to guests, copy a caterer summary.
 - Deleting an event needs typing the word delete in a styled confirmation, never a browser popup.
-- Create, edit and delete events: name, occasion, date, host name, invited count, RSVP deadline, plus-one limit, usual arrival time.
+- Create, edit and delete events: name, occasion, date, host name, invited count, RSVP deadline, plus-one limit, usual arrival time, and an optional event banner. The banner shows at the top of the invite and becomes the WhatsApp/Facebook link-preview image, with a Hazir watermark added to the preview copy (the original upload is never altered).
 - Optional guest name list: every named guest gets a personal link, so you see exactly who has not answered.
 - Overview: coming, declined, awaiting, plates, days to go, answered progress, arrivals by hour, meal mix, group mix, latest answers. Refreshes itself every 15 seconds.
 - Guests table: search, filter (coming, declined, awaiting, checked in), check-in toggle, remove, add names, add a walk-in or phone RSVP, CSV export (spreadsheet formula safe).
@@ -32,7 +32,8 @@ Host (signed in with email and password):
 
 Guest (no account):
 
-- One link, any phone. Yes or no, name, group, meal, party size up to the host's limit, each companion named with a meal, arrival time slider, note to the host.
+- One link, any phone. Yes or no, name, group, meal, adults and kids counted separately up to the host's limit, each companion named with a meal, arrival time slider, note to the host.
+- After answering, the guest gets a saveable personal link ("Plans change. Keep your RSVP handy.") that reopens their own answer - and only theirs - to change it later.
 - Personal links lock the answer to that guest and let them change it later. Answers close at the exact deadline time, enforced by the database, and guest answers have basic abuse limits (see docs/SECURITY.md).
 - A guest can only see the event title, date, host name and deadline. Never other guests, meals or answers.
 
@@ -43,9 +44,11 @@ Landing page: the story, how it works, and a sample dashboard with made-up guest
 ```
 index.html            landing page
 app.html              host app (login, events, dashboard)
-rsvp.html             guest RSVP page
+rsvp.html             guest RSVP page (served through /rsvp on Vercel)
+api/rsvp.js           server-rendered guest page: injects per-event social preview (Open Graph) tags
+404.html              styled not-found page
 assets/css/           site.css (base + landing), app.css (host app + guest page)
-src/lib/              config, http, session, auth, db, format, ui (no framework, no dependencies)
+src/lib/              config, http, session, auth, db, storage (banner upload + watermark), format, ui (no framework, no dependencies)
 src/features/host/    host views: authView, eventsView, calendar, eventForm, dashboard/ (tabs, stats, csv, add guest, nudge)
 src/pages/            entry points: host.js, rsvp.js, landing.js
 supabase/schema.sql   tables, policies, functions, grants
@@ -59,7 +62,8 @@ Data flow: the browser talks straight to the backend's REST and Auth endpoints w
 
 - Row Level Security is on for `events`, `invitees` and `responses`. Policies allow a row only when `events.owner = auth.uid()`.
 - The anonymous role has no table access at all. Guests call two `security definer` functions: `get_invite` (title, date, host, deadline, and the guest's own name for a personal link) and `submit_rsvp` (validates the event, deadline, token and party size, and caps responses).
-- Personal tokens are random 96-bit values in each invitee row. A wrong token is rejected.
+- Personal tokens are random 96-bit values in each invitee row. A wrong token is rejected. Saved RSVP links use a separate random 96-bit edit token on the response row; it returns and updates only that one answer.
+- Banner images live in a public storage bucket (needed for link previews), capped at 5 MB and limited to PNG/JPG/WebP; a host can only write inside a folder named after an event they own.
 - The publishable key in `src/lib/config.js` is public by design. Never commit a service role key or a database password. `.gitignore` excludes env files.
 - All user text is HTML-escaped before rendering. CSV export prefixes cells that start with `=`, `+`, `-` or `@`.
 - Known limits: guest RSVPs have no CAPTCHA or per-IP rate limit on the free tier, and email verification and password reset are off (no mail provider is configured). Anyone can create a host account.

@@ -16,6 +16,7 @@ const check = async (name, fn) => { try { const v = await fn(); const ok = v !==
 const browser = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome', args: ['--no-sandbox'], headless: 'new' });
 const click = (p, sel) => p.$eval(sel, e => e.click());
 const txt = (p, sel) => p.$eval(sel, e => e.innerText).catch(() => '');
+let gRef = null; const p2v = () => gRef.$eval('.savebox input', e => e.value).catch(() => '');
 const day = n => new Date(Date.now() + 864e5 * n).toISOString().slice(0, 10);
 const email = `hazir-e2e-f${Date.now()}@example.com`, pw = 'Test-pass-12345';
 
@@ -40,13 +41,27 @@ for (const [w, h, tag] of [[1280, 850, 'desktop'], [390, 844, 'mobile']]) {
   await check('invites tab: open link, 3 personal links, copy reminder control', async () => { await sl(700); await p.screenshot({ path: `${SHOTS}/${tag}-invites.png` }); return (await p.$$('[data-c]')).length === 3 && !!(await p.$('#callw')); });
   await check('edit event saves changes', async () => { await click(p, '#ed'); await p.waitForSelector('#ef'); await p.$eval('#t', e => { e.value = ''; }); await p.type('#t', 'Feature Test Dinner (edited)'); await click(p, '#sv'); await p.waitForSelector('.evpage'); await sl(500); return /edited/.test(await txt(p, '.evpage h2')); });
 
+  await check('event banner uploads, persists and shows on the guest page', async () => {
+    await click(p, '#ed'); await p.waitForSelector('#ef');
+    const inp = await p.$('#bn'); await inp.uploadFile(join(root, 'tests/assets/banner.png'));
+    await sl(800); await p.screenshot({ path: `${SHOTS}/${tag}-banner-form.png` });
+    await click(p, '#sv'); await p.waitForSelector('.evpage', { timeout: 30000 });
+    await g.goto(`${base}/rsvp.html?e=${eid}`, { waitUntil: 'networkidle0' });
+    const ok = await g.waitForSelector('img.banner', { timeout: 20000 }).then(() => true).catch(() => false);
+    await g.screenshot({ path: `${SHOTS}/${tag}-guest-banner.png` });
+    if (!process.env.BASE_URL) return ok;
+    const h = await (await fetch(base + '/rsvp?e=' + eid)).text();
+    return ok && /property="og:image" content="[^"]*og\.jpg"/.test(h) && /property="og:title"/.test(h);
+  });
   // guests answer: yes with companion, no, personal-token
-  const g = await (await browser.createBrowserContext()).newPage(); await g.setViewport({ width: w, height: h });
-  await check('guest yes with companion, meal, time and note', async () => { await g.goto(`${base}/rsvp.html?e=${eid}`, { waitUntil: 'networkidle0' }); await g.screenshot({ path: `${SHOTS}/${tag}-guest.png` }); await g.type('#n', 'Diya Rao'); await g.select('#g', 'Friends'); await g.select('#m', 'Jain'); await click(g, '#pl'); await g.type('[data-ci="0"]', 'Rohan Rao'); await g.select('[data-cm="0"]', 'Vegan'); await g.$eval('#tr', e => { e.value = 1230; e.dispatchEvent(new Event('input', { bubbles: true })); }); await g.type('#nt', 'Window seat'); await click(g, '#sb'); await g.waitForSelector('.done', { timeout: 15000 }); await g.screenshot({ path: `${SHOTS}/${tag}-guest-done.png` }); return true; });
+  const g = await (await browser.createBrowserContext()).newPage(); gRef = g; await g.setViewport({ width: w, height: h });
+  await check('guest yes with companion, meal, time and note', async () => { await g.goto(`${base}/rsvp.html?e=${eid}`, { waitUntil: 'networkidle0' }); await g.screenshot({ path: `${SHOTS}/${tag}-guest.png` }); await g.type('#n', 'Diya Rao'); await g.select('#g', 'Friends'); await g.select('#m', 'Jain'); await click(g, '#apl'); await click(g, '#kpl'); await g.type('[data-ci="0"]', 'Rohan Rao'); await g.select('[data-cm="0"]', 'Vegan'); await g.type('[data-ci="1"]', 'Mira Rao'); await g.select('[data-cm="1"]', 'Kids'); await g.$eval('#tr', e => { e.value = 1230; e.dispatchEvent(new Event('input', { bubbles: true })); }); await g.type('#nt', 'Window seat'); await click(g, '#sb'); await g.waitForSelector('.done', { timeout: 15000 }); await g.screenshot({ path: `${SHOTS}/${tag}-guest-done.png` }); return true; });
+  let editLink = '';
+  await check('save-my-RSVP link shown and works for changing the answer later', async () => { editLink = await p2v(); if (!/\/rsvp\?e=[0-9a-f]+&r=[0-9a-f]+$/.test(editLink)) return false; const g2 = await (await browser.createBrowserContext()).newPage(); await g2.setViewport({ width: w, height: h }); await g2.goto(editLink, { waitUntil: 'networkidle0' }); const t = await txt(g2, '#root'); const okPrefill = /Diya Rao/.test(t) && /already answered/.test(t); await g2.screenshot({ path: `${SHOTS}/${tag}-editlink.png` }); await click(g2, '#kpl'); await click(g2, '#sb'); await g2.waitForSelector('.done', { timeout: 15000 }); return okPrefill; });
   await check('guest decline works', async () => { await g.goto(`${base}/rsvp.html?e=${eid}`, { waitUntil: 'networkidle0' }); await click(g, '[data-a="0"]'); await g.type('#n', 'Karan Shah'); await click(g, '#sb'); await g.waitForSelector('.done', { timeout: 15000 }); return /Thank you/.test(await txt(g, '.done')); });
   await check('bad event link shows a friendly page', async () => { await g.goto(`${base}/rsvp.html?e=doesnotexist`, { waitUntil: 'networkidle0' }); return /not found/i.test(await txt(g, '#root')); });
 
-  await check('dashboard overview shows correct numbers', async () => { await p.reload({ waitUntil: 'networkidle0' }); await p.waitForSelector('.evcard'); await click(p, '.evcard'); await p.waitForSelector('.stats5'); await click(p, '[data-t="overview"]'); await sl(1500); await p.screenshot({ path: `${SHOTS}/${tag}-overview.png` }); const v = await p.$$eval('.stats5 .stat b', e => e.map(x => x.textContent)); return v[0] === '2' && v[1] === '1' ? v.join(',') : false; });
+  await check('dashboard overview shows correct numbers', async () => { await p.reload({ waitUntil: 'networkidle0' }); await p.waitForSelector('.evcard'); await click(p, '.evcard'); await p.waitForSelector('.stats5'); await click(p, '[data-t="overview"]'); await sl(1500); await p.screenshot({ path: `${SHOTS}/${tag}-overview.png` }); const v = await p.$$eval('.stats5 .stat b', e => e.map(x => x.textContent)); const sub = await txt(p, '.stats5'); return v[0] === '4' && v[1] === '1' && /2 adults \+ 2 kids/.test(sub) ? v.join(',') : false; });
   await check('guests tab: search, filters, check-in, walk-in, add names, export, remove', async () => {
     await click(p, '[data-t="guests"]'); await sl(700); await p.screenshot({ path: `${SHOTS}/${tag}-guests.png` });
     await p.type('#q', 'diya'); await sl(300); if (!/Diya Rao/.test(await txt(p, '#tb')) || /Karan/.test(await txt(p, '#tb'))) return false; await p.$eval('#q', e => { e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); });

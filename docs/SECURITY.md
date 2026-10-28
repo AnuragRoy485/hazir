@@ -6,7 +6,8 @@
 |---|---|---|---|
 | Signed-in host | read/write own only | read/write own events only | read/write own events only |
 | Anonymous visitor | no table access | no table access | no table access |
-| Guest via RSVP link | `get_invite` (title, date, host, deadline) | own name when a valid token is used | `submit_rsvp` (write only) |
+| Guest via RSVP link | `get_invite` (title, date, host, deadline, banner) | own name when a valid token is used | `submit_rsvp` (write only) |
+| Guest via saved edit link | `get_invite` with edit token returns only that answer | - | `submit_rsvp` with edit token updates only that answer |
 
 Enforced in the database (`supabase/schema.sql`), not in the browser. The browser code is untrusted.
 
@@ -20,6 +21,10 @@ Enforced in the database (`supabase/schema.sql`), not in the browser. The browse
 ## Abuse limits
 
 Checked by `node tests/abuse.mjs` against the real backend: a normal answer works, a personal link is slowed after repeated changes, a faked x-forwarded-for does not dodge the limit, 170 parallel answers from one connection are cut off at exactly 150, and the limit table cannot be read by guests.
+
+## Storage
+
+Banner images live in a public `banners` bucket: 5 MB cap, PNG/JPG/WebP only, and write policies that check the folder name is an event owned by the signed-in host. Public read is required because social link previews can only fetch public images.
 
 ## Keys
 

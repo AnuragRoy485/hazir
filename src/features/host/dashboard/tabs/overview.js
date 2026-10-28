@@ -13,7 +13,7 @@ export function overview(p){
   const grp={};s.yes.forEach(r=>{const g=r.grp||'Other';grp[g]=(grp[g]||0)+r.party});
   const hk=Object.keys(hours).map(Number).sort((a,b)=>a-b),hmax=Math.max(1,...Object.values(hours));
   const mmax=Math.max(1,...Object.values(meal)),gmax=Math.max(1,...Object.values(grp));
-  p.innerHTML=`<div class="stats5">${stat('Coming',s.heads,'people incl. plus-ones')}${stat('Declined',s.no.length)}${stat('Awaiting',s.awaiting,s.awaitingNames.length?s.awaitingNames.length+' named':'')}${stat('Plates',s.heads,'to prepare')}${stat('Invited',ev.invited,days>0?days+' day'+(days>1?'s':'')+' to go':days===0?'today':'past')}</div>
+  p.innerHTML=`<div class="stats5">${stat('Coming',s.heads,s.kids?`${s.adults} adults + ${s.kids} kids`:'people incl. plus-ones')}${stat('Declined',s.no.length)}${stat('Awaiting',s.awaiting,s.awaitingNames.length?s.awaitingNames.length+' named':'')}${stat('Plates',s.heads,'to prepare')}${stat('Invited',ev.invited,days>0?days+' day'+(days>1?'s':'')+' to go':days===0?'today':'past')}</div>
    <div class="card prog reveal in"><div class="phead"><span>${answered} of ${ev.invited} answered</span><b>${pct}%</b></div><div class="bar big"><i style="width:${pct}%"></i></div>
    <p class="fine">${ev.rsvp_closed?'RSVPs are closed by you.':ev.deadline_at?'RSVPs close '+fmtDeadline(ev.deadline_at,ev.tz)+(isClosed(ev)?' (closed)':''):ev.deadline?'RSVP deadline '+fmtDate(ev.deadline)+(isClosed(ev)?' (closed)':''):'No RSVP deadline set.'}</p>
    <div class="row" style="margin-top:12px"><button class="btn btn-ghost btn-sm" id="sum">Copy caterer summary</button></div></div>
