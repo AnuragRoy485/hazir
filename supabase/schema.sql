@@ -1042,3 +1042,20 @@ create policy banners_owner_select on storage.objects for select to authenticate
 grant select on public.event_members to authenticated;
 revoke all on function public.add_cohost(text, text), public.remove_cohost(text, text), public.list_cohosts(text) from public;
 grant execute on function public.add_cohost(text, text), public.remove_cohost(text, text), public.list_cohosts(text) to authenticated;
+
+-- Migration 18: hard-block event ownership changes. The member policy's WITH CHECK
+-- cannot reference the OLD row, so a co-host could PATCH events.owner to themselves.
+-- Column-level REVOKE cannot exclude one column from a table-level UPDATE grant,
+-- so ownership is protected with a trigger instead. No client path ever needs to
+-- change owner (admin_create_event sets it at INSERT), so this blocks everyone.
+create or replace function public.events_protect_owner() returns trigger
+language plpgsql as $$
+begin
+  if new.owner is distinct from old.owner then
+    raise exception 'event ownership cannot be changed';
+  end if;
+  return new;
+end $$;
+drop trigger if exists events_protect_owner on public.events;
+create trigger events_protect_owner before update on public.events
+  for each row execute function public.events_protect_owner();
