@@ -6,6 +6,7 @@ import { auth } from '../lib/auth.js';
 import { rpc } from '../lib/db.js';
 import { $, $$, initEffects, confirmBox, toast } from '../lib/ui.js';
 import { esc, fmtDate, fmtTime, OCCASIONS, TZS, zonedToIso, isoToZoned, guestLink } from '../lib/format.js';
+import { uploadBanner, uploadFallbackOg, deleteBanner, BANNER_TYPES, BANNER_MAX } from '../lib/storage.js';
 
 const root = $('#root'), navr = $('#navr');
 
@@ -16,7 +17,7 @@ function nav(name) {
 const shell = html => { root.innerHTML = `<section class="evpage">${html}</section>`; };
 const ts = v => v ? new Date(v).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
 
-const LABELS = { admin_overview: 'Viewed the overview', admin_update_user: 'Edited a host', admin_delete_user: 'Deleted a host', admin_update_event: 'Edited an event', admin_delete_event: 'Deleted an event', admin_view_event: 'Viewed RSVP details', admin_delete_users: 'Deleted hosts in bulk', admin_delete_events: 'Deleted events in bulk' };
+const LABELS = { admin_overview: 'Viewed the overview', admin_update_user: 'Edited a host', admin_delete_user: 'Deleted a host', admin_update_event: 'Edited an event', admin_delete_event: 'Deleted an event', admin_view_event: 'Viewed RSVP details', admin_delete_users: 'Deleted hosts in bulk', admin_delete_events: 'Deleted events in bulk', admin_update_response: 'Edited a guest answer', admin_delete_response: 'Deleted a guest answer', admin_add_invitee: 'Added a guest', admin_delete_invitee: 'Removed a guest' };
 function describe(l) {
   const d = l.detail || {};
   switch (l.action) {
@@ -27,6 +28,10 @@ function describe(l) {
     case 'admin_view_event': return `Viewed RSVP details for "${d.title || ''}"`;
     case 'admin_delete_users': return `Deleted ${d.count || 0} host${d.count === 1 ? '' : 's'}: ${(d.users || []).join(', ')}`;
     case 'admin_delete_events': return `Deleted ${d.count || 0} event${d.count === 1 ? '' : 's'}: ${(d.events || []).map(t => '"' + t + '"').join(', ')}`;
+    case 'admin_update_response': return `Edited ${d.guest || 'a guest'}'s answer for "${d.event || ''}"`;
+    case 'admin_delete_response': return `Deleted ${d.guest || 'a guest'}'s answer for "${d.event || ''}"`;
+    case 'admin_add_invitee': return `Added the guest "${d.guest || ''}" to "${d.event || ''}"`;
+    case 'admin_delete_invitee': return `Removed the guest "${d.guest || ''}" from "${d.event || ''}"`;
     default: return LABELS[l.action] || l.action.replace(/_/g, ' ');
   }
 }
@@ -169,9 +174,30 @@ function editEventFull(ov, id, again) {
     <label class="field">Message to guests (optional)<textarea id="ef-msg" rows="3" maxlength="300">${esc(ev.message || '')}</textarea></label>
     <div class="two"><label class="field">Usual arrival time<input id="ef-time" type="time" value="${hm(ev.default_time)}"></label>
     <label class="field">RSVPs<select id="ef-closed"><option value="open"${!ev.rsvp_closed ? ' selected' : ''}>Open</option><option value="closed"${ev.rsvp_closed ? ' selected' : ''}>Closed</option></select></label></div>
+    <label class="field">Event banner (optional)
+      <input id="ef-bn" type="file" accept="${BANNER_TYPES.join(',')}" hidden>
+      <span class="bnbox" id="ef-bnbox" tabindex="0" role="button" aria-label="Event banner. Activate to choose an image; when one is set, change or remove it."><img id="ef-bnimg" alt="Event banner preview" ${ev.banner ? `src="${esc(ev.banner)}"` : ''} ${ev.banner ? '' : 'hidden'}><span class="bnph" id="ef-bnph" ${ev.banner ? 'hidden' : ''}>Choose an image</span><span class="bnact" id="ef-bnact" ${ev.banner ? '' : 'hidden'}><button type="button" class="mini" id="ef-bnchg">Change banner</button><button type="button" class="mini" id="ef-bnrem">Remove banner</button></span></span></label>
     <div class="row end"><button class="btn btn-ghost btn-sm" id="ec">Cancel</button><button class="btn btn-sm" id="eo">Save</button></div></div>`;
   document.body.appendChild(w); document.body.classList.add('noscroll');
   requestAnimationFrame(() => w.classList.add('in'));
+  let bfile = null, rmPending = false;
+  const bni = w.querySelector('#ef-bn'), bimg = w.querySelector('#ef-bnimg'), bph = w.querySelector('#ef-bnph'), bact = w.querySelector('#ef-bnact'), bbox = w.querySelector('#ef-bnbox'), brem = w.querySelector('#ef-bnrem');
+  const syncBn = () => {
+    const has = !!(bfile || (ev.banner && !rmPending));
+    bimg.hidden = !has; bph.hidden = has; bact.hidden = !has;
+    if (bfile) bimg.src = URL.createObjectURL(bfile);
+    else if (!rmPending && ev.banner && bimg.getAttribute('src') !== ev.banner) bimg.src = ev.banner;
+    brem.textContent = rmPending ? 'Undo remove' : 'Remove banner';
+  };
+  bbox.addEventListener('click', y => { if (y.target.closest('button')) return; const has = !!(bfile || (ev.banner && !rmPending)); if (has && matchMedia('(hover: none)').matches) { bbox.classList.toggle('on'); return; } bni.click(); });
+  w.querySelector('#ef-bnchg').onclick = () => bni.click();
+  brem.onclick = () => { if (bfile) { bfile = null; bni.value = ''; rmPending = false; } else if (ev.banner) { rmPending = !rmPending; } bbox.classList.remove('on'); syncBn(); };
+  bni.onchange = () => {
+    const f = bni.files[0]; if (!f) return;
+    if (!BANNER_TYPES.includes(f.type)) { toast('The banner needs to be a PNG, JPG or WebP image.', 1); bni.value = ''; return; }
+    if (f.size > BANNER_MAX) { toast('Banner images can be up to 5 MB.', 1); bni.value = ''; return; }
+    bfile = f; rmPending = false; syncBn();
+  };
   const done = () => { w.classList.remove('in'); document.body.classList.remove('noscroll'); setTimeout(() => w.remove(), 250); };
   w.querySelector('#ec').onclick = done;
   w.querySelector('#eo').onclick = async () => {
@@ -183,6 +209,17 @@ function editEventFull(ov, id, again) {
       deadline_at: v('ef-dld') ? zonedToIso(v('ef-dld'), v('ef-dlt') || '23:59', v('ef-tz')) : '',
       tz: v('ef-tz'), rsvp_closed: v('ef-closed') === 'closed'
     };
+    try {
+      if (bfile) {
+        const urls = await uploadBanner(id, bfile);
+        patch.banner = urls.banner; patch.banner_og = urls.banner_og;
+        if (ev.banner) deleteBanner(ev.id, ev.banner, ev.banner_og);
+      } else if (ev.banner && rmPending) {
+        const og = await uploadFallbackOg(id, { title: patch.title, when: fmtDate(patch.event_date), host: patch.host_name });
+        patch.banner = ''; patch.banner_og = og.banner_og;
+        deleteBanner(ev.id, ev.banner, ev.banner_og);
+      }
+    } catch (err) { toast('Banner failed: ' + (err.message || 'upload error'), 1); return; }
     try { await rpc('admin_update_event', { p_event_id: id, p_patch: patch }); done(); again('Event updated'); }
     catch (e) { toast(e.message || 'Update failed', 1); }
   };
@@ -198,13 +235,65 @@ function wireEventViews() {
     const ev = det.event || {}, res = det.responses || [], inv = det.invitees || [];
     const answered = new Set(res.map(r => (r.name || '').toLowerCase()));
     const awaiting = inv.filter(i => !answered.has((i.name || '').toLowerCase()));
+    const resRow = r => `<tr data-rid="${r.id}">
+      <td>${esc(r.name || '')}</td><td>${r.attending ? 'Coming' : 'Declined'}</td>
+      <td>${r.attending ? (r.adults ?? r.party ?? '') : ''}</td><td>${r.attending ? (r.kids || 0) : ''}</td>
+      <td>${esc(r.grp || '')}</td><td>${esc(r.meal || '')}</td>
+      <td>${r.attending && r.arrival != null ? fmtTime(r.arrival) : ''}</td><td>${esc(r.note || '')}</td>
+      <td><button class="mini" data-er="${r.id}">Edit</button> <button class="mini danger" data-dr="${r.id}">Delete</button></td></tr>`;
+    const invRow = i => `<tr><td>${esc(i.name)}</td>
+      <td><button class="mini" data-ci="${i.token}">Copy link</button> <button class="mini danger" data-di="${i.id}">Remove</button></td></tr>`;
     detailCard(`<h4>${esc(ev.title || 'Event')}</h4>
       <p class="muted">${esc(ev.occasion || '')} · ${fmtDate(ev.event_date)} · Host: ${esc(ev.host_email || ev.host_name || '')} · ${res.length} answer${res.length === 1 ? '' : 's'}, ${awaiting.length} awaiting</p>
       <div class="linkbox" style="margin-bottom:14px"><input readonly value="${guestLink({ id: ev.id })}"><button class="btn btn-sm" id="adcopy">Copy</button></div>
-      ${res.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Name</th><th>Status</th><th>Adults</th><th>Kids</th><th>Group</th><th>Meal</th><th>Arrival</th><th>Note</th></tr></thead>
-      <tbody>${res.map(r => `<tr><td>${esc(r.name || '')}</td><td>${r.attending ? 'Coming' : 'Declined'}</td><td>${r.attending ? (r.adults ?? r.party ?? '') : ''}</td><td>${r.attending ? (r.kids || 0) : ''}</td><td>${esc(r.grp || '')}</td><td>${esc(r.meal || '')}</td><td>${r.attending && r.arrival != null ? fmtTime(r.arrival) : ''}</td><td>${esc(r.note || '')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No answers yet.</p>'}
-      ${awaiting.length ? `<p class="muted">Awaiting: ${awaiting.map(i => esc(i.name)).join(', ')}</p>` : ''}`);
+      ${res.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Name</th><th>Status</th><th>Adults</th><th>Kids</th><th>Group</th><th>Meal</th><th>Arrival</th><th>Note</th><th></th></tr></thead>
+      <tbody>${res.map(resRow).join('')}</tbody></table></div>` : '<p class="muted">No answers yet.</p>'}
+      <h4 style="margin-top:18px">Guest list</h4>
+      ${inv.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Name</th><th></th></tr></thead><tbody>${inv.map(invRow).join('')}</tbody></table></div>` : '<p class="muted">No guests on the list yet.</p>'}
+      <div class="row" style="margin-top:10px"><input id="adgn" maxlength="40" placeholder="New guest name" style="flex:1;min-width:160px"><button class="btn btn-sm" id="adga">Add guest</button></div>`);
     const cp = $('#adcopy'); if (cp) cp.onclick = () => { navigator.clipboard.writeText(guestLink({ id: ev.id })).then(() => toast('Link copied')); };
+    const reload = () => { const vb = document.querySelector(`[data-ve="${ev.id}"]`); if (vb) vb.click(); };
+    const resById = id => res.find(r => r.id === id);
+    $$('#adetail [data-er]').forEach(b => b.onclick = async () => {
+      const r = resById(b.dataset.er); if (!r) return;
+      const out = await editDialog('Edit answer for ' + (r.name || 'guest'), [
+        { key: 'name', label: 'Name', value: r.name || '', max: 40 },
+        { key: 'attending', label: "Coming? type 'yes' or 'no'", value: r.attending ? 'yes' : 'no', max: 3 },
+        { key: 'adults', label: 'Adults (0-10)', value: r.adults ?? r.party ?? 0, max: 2, type: 'number' },
+        { key: 'kids', label: 'Kids (0-10)', value: r.kids ?? 0, max: 2, type: 'number' },
+        { key: 'grp', label: 'Group', value: r.grp || '', max: 20 },
+        { key: 'meal', label: 'Meal', value: r.meal || '', max: 20 },
+        { key: 'arrival', label: 'Arrival (minutes after midnight, optional)', value: r.arrival == null ? '' : r.arrival, max: 4, type: 'number' },
+        { key: 'note', label: 'Note', value: r.note || '', max: 120 }]);
+      if (!out) return;
+      const patch = { name: out.name, attending: /^y/i.test(out.attending.trim()), adults: parseInt(out.adults || '0', 10), kids: parseInt(out.kids || '0', 10), grp: out.grp, meal: out.meal, arrival: out.arrival === '' ? '' : parseInt(out.arrival, 10), note: out.note };
+      try { await rpc('admin_update_response', { p_response_id: r.id, p_patch: patch }); toast('Answer updated'); reload(); }
+      catch (e) { toast(e.message || 'Update failed', 1); }
+    });
+    $$('#adetail [data-dr]').forEach(b => b.onclick = async () => {
+      const r = resById(b.dataset.dr); if (!r) return;
+      const okd = await confirmBox({ title: 'Delete this answer?', body: `"${r.name || 'This guest'}"'s answer will be removed permanently. This cannot be undone.`, ok: 'Delete answer', word: 'delete', danger: true });
+      if (!okd) return;
+      try { await rpc('admin_delete_response', { p_response_id: r.id }); toast('Answer deleted'); reload(); }
+      catch (e) { toast(e.message || 'Delete failed', 1); }
+    });
+    $$('#adetail [data-ci]').forEach(b => b.onclick = () => {
+      navigator.clipboard.writeText(guestLink({ id: ev.id, token: b.dataset.ci })).then(() => toast('Personal link copied'));
+    });
+    $$('#adetail [data-di]').forEach(b => b.onclick = async () => {
+      const i = inv.find(x => x.id === b.dataset.di); if (!i) return;
+      const okd = await confirmBox({ title: 'Remove this guest?', body: `"${i.name}" will be removed from the guest list along with any answer they gave. This cannot be undone.`, ok: 'Remove guest', word: 'remove', danger: true });
+      if (!okd) return;
+      try { await rpc('admin_delete_invitee', { p_invitee_id: i.id }); toast('Guest removed'); reload(); }
+      catch (e) { toast(e.message || 'Remove failed', 1); }
+    });
+    const ga = $('#adga');
+    if (ga) ga.onclick = async () => {
+      const inp = $('#adgn'), name = (inp.value || '').trim();
+      if (!name) { toast('Type a name first', 1); return; }
+      try { await rpc('admin_add_invitee', { p_event_id: ev.id, p_name: name }); toast('Guest added'); reload(); }
+      catch (e) { toast(e.message || 'Add failed', 1); }
+    };
   });
 }
 

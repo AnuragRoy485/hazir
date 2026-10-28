@@ -700,3 +700,173 @@ end $$;
 
 revoke all on function public.admin_update_event(text, jsonb) from public;
 grant execute on function public.admin_update_event(text, jsonb) to authenticated;
+
+-- Migration 14: admin guest and RSVP management. Same validation limits as the public
+-- answer path; every change is audited with the guest name and event title.
+create or replace function public.admin_update_response(p_response_id uuid, p_patch jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_res public.responses; v_title text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  select * into v_res from public.responses where id = p_response_id;
+  if v_res.id is null then raise exception 'answer not found'; end if;
+  update public.responses set
+    name = case when p_patch ? 'name' then left(trim(p_patch->>'name'),40) else name end,
+    attending = case when p_patch ? 'attending' then (p_patch->>'attending')::boolean else attending end,
+    adults = case when p_patch ? 'adults' then greatest(0, least(10, (p_patch->>'adults')::int)) else adults end,
+    kids = case when p_patch ? 'kids' then greatest(0, least(10, (p_patch->>'kids')::int)) else kids end,
+    party = case when p_patch ? 'adults' or p_patch ? 'kids'
+      then greatest(0, least(10, (coalesce(nullif(p_patch->>'adults','')::int, adults)))) + greatest(0, least(10, (coalesce(nullif(p_patch->>'kids','')::int, kids))))
+      else party end,
+    grp = case when p_patch ? 'grp' then nullif(left(trim(p_patch->>'grp'),20),'') else grp end,
+    meal = case when p_patch ? 'meal' then nullif(left(trim(p_patch->>'meal'),20),'') else meal end,
+    arrival = case when p_patch ? 'arrival' then nullif(p_patch->>'arrival','')::int else arrival end,
+    note = case when p_patch ? 'note' then nullif(left(trim(p_patch->>'note'),120),'') else note end
+  where id = p_response_id;
+  select title into v_title from public.events where id = v_res.event_id;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_update_response', jsonb_build_object('event', v_title, 'guest', v_res.name));
+end $$;
+
+create or replace function public.admin_delete_response(p_response_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_res public.responses; v_title text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  select * into v_res from public.responses where id = p_response_id;
+  if v_res.id is null then raise exception 'answer not found'; end if;
+  delete from public.responses where id = p_response_id;
+  select title into v_title from public.events where id = v_res.event_id;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_delete_response', jsonb_build_object('event', v_title, 'guest', v_res.name));
+end $$;
+
+create or replace function public.admin_add_invitee(p_event_id text, p_name text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_inv public.invitees; v_title text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if p_name is null or char_length(trim(p_name)) = 0 or char_length(p_name) > 40 then
+    raise exception 'name must be 1-40 characters'; end if;
+  select title into v_title from public.events where id = p_event_id;
+  if v_title is null then raise exception 'event not found'; end if;
+  insert into public.invitees (event_id, name) values (p_event_id, trim(p_name)) returning * into v_inv;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_add_invitee', jsonb_build_object('event', v_title, 'guest', trim(p_name)));
+  return jsonb_build_object('id', v_inv.id, 'name', v_inv.name, 'token', v_inv.token);
+end $$;
+
+create or replace function public.admin_delete_invitee(p_invitee_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_inv public.invitees; v_title text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  select * into v_inv from public.invitees where id = p_invitee_id;
+  if v_inv.id is null then raise exception 'guest not found'; end if;
+  delete from public.invitees where id = p_invitee_id;
+  select title into v_title from public.events where id = v_inv.event_id;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_delete_invitee', jsonb_build_object('event', v_title, 'guest', v_inv.name));
+end $$;
+
+-- Event detail now includes row ids so the admin can act on guests and answers.
+create or replace function public.admin_event_detail(p_event_id text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_ev public.events;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  select * into v_ev from public.events where id = p_event_id;
+  if v_ev.id is null then raise exception 'event not found'; end if;
+  insert into public.admin_audit_log (actor, action, detail) values (v_uid, 'admin_view_event', jsonb_build_object('title', v_ev.title));
+  return jsonb_build_object(
+    'event', jsonb_build_object('id', v_ev.id, 'title', v_ev.title, 'occasion', v_ev.occasion,
+      'event_date', v_ev.event_date, 'host_name', v_ev.host_name, 'created_at', v_ev.created_at,
+      'host_email', (select email from auth.users where id = v_ev.owner)),
+    'invitees', (select coalesce(jsonb_agg(i order by i.name), '[]'::jsonb) from (
+      select id, name, token from public.invitees where event_id = p_event_id) i),
+    'responses', (select coalesce(jsonb_agg(r order by r.created_at desc), '[]'::jsonb) from (
+      select id, name, attending, party, adults, kids, grp, meal, arrival, note, checked_in, created_at
+      from public.responses where event_id = p_event_id) r));
+end $$;
+
+revoke all on function public.admin_update_response(uuid, jsonb), public.admin_delete_response(uuid),
+  public.admin_add_invitee(text, text), public.admin_delete_invitee(uuid) from public;
+grant execute on function public.admin_update_response(uuid, jsonb), public.admin_delete_response(uuid),
+  public.admin_add_invitee(text, text), public.admin_delete_invitee(uuid) to authenticated;
+
+-- Migration 15: admins can manage any event's banner files (banner parity with hosts).
+drop policy if exists banners_owner_insert on storage.objects;
+create policy banners_owner_insert on storage.objects for insert to authenticated
+  with check (bucket_id = 'banners' and (public.is_admin() or exists (
+    select 1 from public.events ev where ev.id = (storage.foldername(name))[1] and ev.owner = auth.uid())));
+drop policy if exists banners_owner_update on storage.objects;
+create policy banners_owner_update on storage.objects for update to authenticated
+  using (bucket_id = 'banners' and (public.is_admin() or exists (
+    select 1 from public.events ev where ev.id = (storage.foldername(name))[1] and ev.owner = auth.uid())));
+drop policy if exists banners_owner_delete on storage.objects;
+create policy banners_owner_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'banners' and (public.is_admin() or exists (
+    select 1 from public.events ev where ev.id = (storage.foldername(name))[1] and ev.owner = auth.uid())));
+drop policy if exists banners_owner_select on storage.objects;
+create policy banners_owner_select on storage.objects for select to authenticated
+  using (bucket_id = 'banners' and (public.is_admin() or exists (
+    select 1 from public.events ev where ev.id = (storage.foldername(name))[1] and ev.owner = auth.uid())));
+
+-- Migration 15b: banner fields in admin event editing (banner parity with hosts).
+create or replace function public.admin_update_event(p_event_id text, p_patch jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if not exists (select 1 from public.events where id = p_event_id) then raise exception 'event not found'; end if;
+  if p_patch ? 'title' and (char_length(trim(p_patch->>'title')) = 0 or char_length(p_patch->>'title') > 80) then
+    raise exception 'title must be 1-80 characters'; end if;
+  update public.events set
+    title = case when p_patch ? 'title' then trim(p_patch->>'title') else title end,
+    occasion = case when p_patch ? 'occasion' then left(trim(p_patch->>'occasion'),40) else occasion end,
+    event_date = case when p_patch ? 'event_date' then (p_patch->>'event_date')::date else event_date end,
+    host_name = case when p_patch ? 'host_name' then nullif(left(trim(p_patch->>'host_name'),40),'') else host_name end,
+    invited = case when p_patch ? 'invited' then greatest(1, least(5000, (p_patch->>'invited')::int)) else invited end,
+    venue = case when p_patch ? 'venue' then nullif(left(trim(p_patch->>'venue'),120),'') else venue end,
+    max_party = case when p_patch ? 'max_party' then greatest(1, least(10, (p_patch->>'max_party')::int)) else max_party end,
+    message = case when p_patch ? 'message' then nullif(left(trim(p_patch->>'message'),300),'') else message end,
+    default_time = case when p_patch ? 'default_time' then greatest(0, least(1439, (p_patch->>'default_time')::int)) else default_time end,
+    deadline_at = case when p_patch ? 'deadline_at' then nullif(p_patch->>'deadline_at','')::timestamptz else deadline_at end,
+    tz = case when p_patch ? 'tz' then nullif(trim(p_patch->>'tz'),'') else tz end,
+    rsvp_closed = case when p_patch ? 'rsvp_closed' then (p_patch->>'rsvp_closed')::boolean else rsvp_closed end,
+    banner = case when p_patch ? 'banner' then nullif(left(p_patch->>'banner',500),'') else banner end,
+    banner_og = case when p_patch ? 'banner_og' then nullif(left(p_patch->>'banner_og',500),'') else banner_og end
+  where id = p_event_id;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_update_event', jsonb_build_object('event', p_event_id, 'fields', (select jsonb_object_agg(key, true) from jsonb_object_keys(p_patch) key)));
+end $$;
+
+create or replace function public.admin_overview() returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  insert into public.admin_audit_log (actor, action) values (v_uid, 'admin_overview');
+  return jsonb_build_object(
+    'totals', jsonb_build_object(
+      'users', (select count(*) from auth.users),
+      'test_users', (select count(*) from auth.users where email ilike '%@example.com'),
+      'events', (select count(*) from public.events),
+      'guests', (select count(*) from public.invitees),
+      'answers', (select count(*) from public.responses),
+      'banners', (select count(*) from public.events where banner is not null)),
+    'users', (select coalesce(jsonb_agg(u order by u.created_at desc), '[]'::jsonb) from (
+      select au.id, au.email, au.raw_user_meta_data->>'name' as name, au.created_at, au.last_sign_in_at,
+        (au.email ilike '%@example.com') as is_test,
+        (select count(*) from public.events e where e.owner = au.id) as events
+      from auth.users au order by au.created_at desc limit 100) u),
+    'events', (select coalesce(jsonb_agg(v order by v.created_at desc), '[]'::jsonb) from (
+      select e.id, e.title, e.occasion, e.event_date, e.host_name, e.invited, e.venue, e.max_party,
+        e.message, e.default_time, e.deadline_at, e.tz, e.rsvp_closed, e.created_at, e.banner,
+        (select email from auth.users au where au.id = e.owner) as host_email,
+        (select count(*) from public.invitees i where i.event_id = e.id) as guests,
+        (select count(*) from public.responses r where r.event_id = e.id) as answers,
+        (select count(*) from public.responses r where r.event_id = e.id and r.attending) as coming,
+        (e.banner is not null) as has_banner
+      from public.events e order by e.created_at desc limit 200) v));
+end $$;
