@@ -8,6 +8,7 @@ import { rpc } from '../lib/db.js';
 import { $, $$, initEffects, confirmBox, toast } from '../lib/ui.js';
 import { esc, fmtDate, fmtTime, OCCASIONS, TZS, zonedToIso, isoToZoned, guestLink } from '../lib/format.js';
 import { uploadBanner, uploadFallbackOg, cleanupOldBanner, BANNER_TYPES, BANNER_MAX } from '../lib/storage.js';
+import { cropBanner } from '../lib/crop.js';
 
 const root = $('#root'), navr = $('#navr');
 
@@ -204,7 +205,8 @@ function editEventFull(ov, id, again) {
     <label class="field">RSVPs<select id="ef-closed"><option value="open"${!ev.rsvp_closed ? ' selected' : ''}>Open</option><option value="closed"${ev.rsvp_closed ? ' selected' : ''}>Closed</option></select></label></div>
     <label class="field">Event banner (optional)
       <input id="ef-bn" type="file" accept="${BANNER_TYPES.join(',')}" hidden>
-      <span class="bnbox" id="ef-bnbox" tabindex="0" role="button" aria-label="Event banner. Activate to choose an image; when one is set, change or remove it."><img id="ef-bnimg" alt="Event banner preview" ${ev.banner ? `src="${esc(ev.banner)}"` : ''} ${ev.banner ? '' : 'hidden'}><span class="bnph" id="ef-bnph" ${ev.banner ? 'hidden' : ''}>Choose an image</span><span class="bnact" id="ef-bnact" ${ev.banner ? '' : 'hidden'}><button type="button" class="mini" id="ef-bnchg">Change banner</button><button type="button" class="mini" id="ef-bnrem">Remove banner</button></span></span></label>
+      <span class="bnbox" id="ef-bnbox" tabindex="0" role="button" aria-label="Event banner. Activate to choose an image; when one is set, change or remove it."><img id="ef-bnimg" alt="Event banner preview" ${ev.banner ? `src="${esc(ev.banner)}"` : ''} ${ev.banner ? '' : 'hidden'}><span class="bnph" id="ef-bnph" ${ev.banner ? 'hidden' : ''}>Choose an image</span><span class="bnact" id="ef-bnact" ${ev.banner ? '' : 'hidden'}><button type="button" class="mini" id="ef-bnchg">Change banner</button><button type="button" class="mini" id="ef-bnrem">Remove banner</button></span></span><small class="muted" style="display:block;margin-top:6px">Exact fit: 1200 x 630 px. After choosing a photo, drag and zoom it in the frame to crop it perfectly.</small>
+      </label>
     <div class="row end"><button class="btn btn-ghost btn-sm" id="ec">Cancel</button><button class="btn btn-sm" id="eo">Save</button></div></div>`;
   document.body.appendChild(w); document.body.classList.add('noscroll');
   requestAnimationFrame(() => w.classList.add('in'));
@@ -220,11 +222,13 @@ function editEventFull(ov, id, again) {
   bbox.addEventListener('click', y => { if (y.target.closest('button')) return; const has = !!(bfile || (ev.banner && !rmPending)); if (has && matchMedia('(hover: none)').matches) { bbox.classList.toggle('on'); return; } bni.click(); });
   w.querySelector('#ef-bnchg').onclick = () => bni.click();
   brem.onclick = () => { if (bfile) { bfile = null; bni.value = ''; rmPending = false; } else if (ev.banner) { rmPending = !rmPending; } bbox.classList.remove('on'); syncBn(); };
-  bni.onchange = () => {
+  bni.onchange = async () => {
     const f = bni.files[0]; if (!f) return;
     if (!BANNER_TYPES.includes(f.type)) { toast('The banner needs to be a PNG, JPG or WebP image.', 1); bni.value = ''; return; }
     if (f.size > BANNER_MAX) { toast('Banner images can be up to 5 MB.', 1); bni.value = ''; return; }
-    bfile = f; rmPending = false; syncBn();
+    const cropped = await cropBanner(f);
+    if (!cropped) { bni.value = ''; return; }
+    bfile = cropped; rmPending = false; syncBn();
   };
   const done = () => { w.classList.remove('in'); document.body.classList.remove('noscroll'); setTimeout(() => w.remove(), 250); };
   w.querySelector('#ec').onclick = done;

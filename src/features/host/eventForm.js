@@ -3,6 +3,7 @@ import { db } from '../../lib/db.js';
 import { $, toast } from '../../lib/ui.js';
 import { OCCASIONS, TZS, browserTz, zonedToIso, isoToZoned, esc, fmtDate, fmtTime } from '../../lib/format.js';
 import { uploadBanner, uploadFallbackOg, cleanupOldBanner, BANNER_TYPES, BANNER_MAX } from '../../lib/storage.js';
+import { cropBanner } from '../../lib/crop.js';
 import { view, busy, niceErr } from './ctx.js';
 import { R } from './ctx.js';
 
@@ -20,6 +21,7 @@ export function eventForm(ev){
     <label class="field">Event banner (optional)
       <input id="bn" type="file" accept="${BANNER_TYPES.join(',')}" hidden>
       <span class="bnbox" id="bnbox" tabindex="0" role="button" aria-label="Event banner. Activate to choose an image; when one is set, change or remove it."><img id="bnimg" alt="Event banner preview" ${e.banner?`src="${esc(e.banner)}"`:''} ${e.banner?'':'hidden'}><span class="bnph" id="bnph" ${e.banner?'hidden':''}>Choose an image</span><span class="bnact" id="bnact" ${e.banner?'':'hidden'}><button type="button" class="mini" id="bnchg">Change banner</button><button type="button" class="mini" id="bnrem">Remove banner</button></span></span>
+    <small class="muted" style="display:block;margin-top:6px">Exact fit: 1200 x 630 px. After choosing a photo, drag and zoom it in the frame to crop it perfectly.</small>
     </label>
     <p class="fine">Shown at the top of your invite, and it becomes the preview image when you share the link on WhatsApp or Facebook, with the Hazir watermark. PNG, JPG or WebP, up to 5 MB.</p>
     <div class="two"><label class="field">RSVP closes on (optional)<input id="dl" type="date" value="${dz.date}"></label><label class="field">At what time<input id="dt" type="time" value="${dz.time}"></label></div>
@@ -48,10 +50,13 @@ export function eventForm(ev){
   bbox.addEventListener('keydown',y=>{if(y.key==='Enter'||y.key===' '){y.preventDefault();bni.click()}});
   $('#bnchg').onclick=()=>bni.click();
   $('#bnrem').onclick=()=>{if(bfile){bfile=null;bni.value='';rmPending=false}else if(e.banner){rmPending=!rmPending}bbox.classList.remove('on');syncBn()};
-  bni.onchange=()=>{const f=bni.files[0],m=$('#msg');if(!f)return;
+  bni.onchange=async()=>{const f=bni.files[0],m=$('#msg');if(!f)return;
     if(!BANNER_TYPES.includes(f.type)){m.hidden=false;m.textContent='The banner needs to be a PNG, JPG or WebP image.';bni.value='';return}
     if(f.size>BANNER_MAX){m.hidden=false;m.textContent='Banner images can be up to 5 MB.';bni.value='';return}
-    m.hidden=true;rmPending=false;const r=new FileReader();r.onload=()=>{bimg.src=r.result;bfile=f;syncBn()};r.readAsDataURL(f)};
+    m.hidden=true;
+    const cropped=await cropBanner(f);
+    if(!cropped){bni.value='';return}
+    rmPending=false;const r=new FileReader();r.onload=()=>{bimg.src=r.result;bfile=cropped;syncBn()};r.readAsDataURL(cropped)};
   syncBn();
   const saveBanner=async(id,row)=>{
     const card={title:row.title,when:fmtDate(row.event_date)+' \u00b7 '+fmtTime(row.default_time),host:row.host_name};
