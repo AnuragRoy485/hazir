@@ -142,4 +142,5 @@ input[type="checkbox"]{width:16px;height:16px;accent-color:#000;cursor:pointer}
 /* Admin toolbars: consistent spacing between stacked control rows and wrapping
    so buttons never touch or overlap the search row on any width. */
 .row.toolbar { margin: 10px 0 12px; flex-wrap: wrap; gap: 10px; }
-.row.toolbar .srch { flex: 1 1 200px; min-width: 0; }
+.row.toolbar input.srch { flex: 1 1 200px; min-width: 0; }
+.row.toolbar select.srch { flex: 0 0 auto; }
