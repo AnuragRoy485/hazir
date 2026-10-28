@@ -28,13 +28,21 @@ export function countTo(el, to, dur = 700) {
 export function initEffects() {
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .12 });
   const scan = () => $$('.reveal:not(.in)').forEach(x => io.observe(x));
-  scan(); new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
-  let last = 0; const bar = $('#progress'), nav = $('#nav');
+  // Batch DOM-change scans to one per frame: big dashboard re-renders would
+  // otherwise run a full-document query for every single mutation.
+  let scanQueued = false;
+  const queueScan = () => { if (scanQueued) return; scanQueued = true; requestAnimationFrame(() => { scanQueued = false; scan(); }); };
+  scan(); new MutationObserver(queueScan).observe(document.body, { childList: true, subtree: true });
+  let last = 0, scrollQueued = false; const bar = $('#progress'), nav = $('#nav');
   addEventListener('scroll', () => {
-    const y = scrollY, h = document.documentElement.scrollHeight - innerHeight;
-    if (bar) bar.style.width = (h > 0 ? y / h * 100 : 0) + '%';
-    if (nav) { nav.classList.toggle('scrolled', y > 10); nav.classList.toggle('hide', y > last && y > 400); }
-    last = y;
+    if (scrollQueued) return; scrollQueued = true;
+    requestAnimationFrame(() => {
+      scrollQueued = false;
+      const y = scrollY, h = document.documentElement.scrollHeight - innerHeight;
+      if (bar) bar.style.width = (h > 0 ? y / h * 100 : 0) + '%';
+      if (nav) { nav.classList.toggle('scrolled', y > 10); nav.classList.toggle('hide', y > last && y > 400); }
+      last = y;
+    });
   }, { passive: true });
   document.addEventListener('pointerdown', e => {
     const b = e.target.closest('.btn,.chip,.tab'); if (!b) return;

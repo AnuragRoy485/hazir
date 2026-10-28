@@ -29,7 +29,17 @@
   <nav class="footlinks"><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></nav>
   <p class="credit">Built with love in Calcutta &middot; By <a href="https://anuragroy.tech" target="_blank" rel="noopener">Anurag Roy</a></p>
 </footer>
-<script type="module" src="src/pages/admin.js"></script>
+    <link rel="modulepreload" href="src/pages/admin.js">
+    <link rel="modulepreload" href="src/lib/config.js">
+    <link rel="modulepreload" href="src/lib/http.js">
+    <link rel="modulepreload" href="src/lib/session.js">
+    <link rel="modulepreload" href="src/lib/auth.js">
+    <link rel="modulepreload" href="src/lib/db.js">
+    <link rel="modulepreload" href="src/lib/ui.js">
+    <link rel="modulepreload" href="src/lib/format.js">
+    <link rel="modulepreload" href="src/lib/storage.js">
+    <link rel="modulepreload" href="src/lib/crop.js">
+    <script type="module" src="src/pages/admin.js"></script>
 <script type="module" src="src/lib/cursor.js"></script>
 </body>
 </html>
