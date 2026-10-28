@@ -369,3 +369,12 @@ end $$;
 
 revoke all on function public.get_invite(text, text, text), public.submit_rsvp(text, text, text, boolean, text, text, int, int, jsonb, text, int, int, text) from public;
 grant execute on function public.get_invite(text, text, text), public.submit_rsvp(text, text, text, boolean, text, text, int, int, jsonb, text, int, int, text) to anon, authenticated;
+
+-- Migration 7: banner owners must be able to SELECT their storage rows. Supabase storage
+-- internally SELECTs the object before UPDATE/DELETE/upsert, so without this policy those
+-- operations fail even though INSERT works. Public reads go through the public bucket URL
+-- and do not need a policy.
+drop policy if exists banners_owner_select on storage.objects;
+create policy banners_owner_select on storage.objects for select to authenticated
+  using (bucket_id = 'banners' and exists (
+    select 1 from public.events ev where ev.id = (storage.foldername(name))[1] and ev.owner = auth.uid()));

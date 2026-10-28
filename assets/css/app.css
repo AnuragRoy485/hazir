@@ -94,7 +94,13 @@ body.noscroll{overflow:hidden}
 .field .bnbox:hover{background:#efefef}
 .bnbox img{width:100%;max-height:220px;object-fit:cover;display:block}
 .bnph{font-size:15px;color:var(--mut);padding:30px 0}
-.bnrm{display:flex;align-items:center;gap:8px;margin:10px 0 4px;font-size:14px;color:var(--mut);cursor:pointer}
+.bnbox{position:relative}
+.bnact{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(24,22,18,.45);border-radius:16px;opacity:0;transition:opacity .15s}
+.bnbox:hover .bnact,.bnbox:focus-within .bnact,.bnbox.on .bnact{opacity:1}
+.bnact .mini{background:#fff;color:#1c1a17;border:0;padding:9px 14px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer}
+.bnbox.rm img{opacity:.35}
+.qrbox{display:flex;justify-content:center;padding:8px 0}
+.qrbox canvas{width:min(300px,100%);height:auto;border-radius:14px;border:1px solid #e9e4da}
 /* Guest page: saved RSVP link + companion tags */
 .savebox{margin:22px 0 6px;padding:18px;border:1.5px dashed #000;border-radius:18px;background:var(--soft)}
 .saveline{font-size:15px;line-height:1.5;margin-bottom:12px}

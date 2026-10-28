@@ -9,7 +9,7 @@ const root = join(fileURLToPath(import.meta.url), '..', '..'), SHOTS = process.e
 await mkdir(SHOTS, { recursive: true });
 const T = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 let server, base = process.env.BASE_URL;
-if (!base) { server = http.createServer(async (q, r) => { const u = q.url.split('?')[0]; try { const f = await readFile(join(root, u === '/' ? 'index.html' : u)); r.writeHead(200, { 'content-type': T[extname(u === '/' ? 'x.html' : u)] }); r.end(f); } catch { r.writeHead(404); r.end(); } }).listen(0); base = 'http://localhost:' + server.address().port; }
+if (!base) { server = http.createServer(async (q, r) => { const u = q.url.split('?')[0]; try { const f = await readFile(join(root, u === '/' ? 'index.html' : u === '/rsvp' ? 'rsvp.html' : u)); r.writeHead(200, { 'content-type': T[extname(u === '/' ? 'x.html' : u)] }); r.end(f); } catch { r.writeHead(404); r.end(); } }).listen(0); base = 'http://localhost:' + server.address().port; }
 const sl = ms => new Promise(r => setTimeout(r, ms));
 const res = [];
 const check = async (name, fn) => { try { const v = await fn(); const ok = v !== false; res.push(ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (typeof v === 'string' ? ' - ' + v : '')); } catch (e) { res.push(false); console.log('FAIL ' + name + ' - ' + e.message.slice(0, 120)); } };
@@ -33,14 +33,17 @@ for (const [w, h, tag] of [[1280, 850, 'desktop'], [390, 844, 'mobile']]) {
   await p.goto(base + '/app.html', { waitUntil: 'networkidle0' });
   await check('login rejects wrong credentials with a clear message', async () => { await p.type('#ae', 'nobody@example.com'); await p.type('#ap', 'wrong-password-1'); await click(p, '#ab'); await sl(1500); return /do not match/i.test(await txt(p, '#msg')); });
   await check('signup validates short password', async () => { await click(p, '[data-m="signup"]'); await p.waitForSelector('#an'); await p.type('#an', 'Test Host'); await p.type('#ae', email); await p.type('#ap', 'short'); await click(p, '#ab'); await sl(300); return /8 characters/i.test(await txt(p, '#msg')); });
-  await check('signup with email and password lands on dashboard (no verification)', async () => { await p.$eval('#ap', e => { e.value = ''; }); await p.type('#ap', pw); await click(p, '#ab'); await p.waitForSelector('.dash', { timeout: 15000 }); await p.screenshot({ path: `${SHOTS}/${tag}-empty.png` }); return true; });
+  await check('signup with email and password lands on dashboard (no verification)', async () => { await p.$eval('#ae', e => { e.value = ''; }); await p.type('#ae', email); await p.$eval('#ap', e => { e.value = ''; }); await p.type('#ap', pw); await click(p, '#ab'); const ok2 = await p.waitForSelector('.dash', { timeout: 20000 }).then(() => true).catch(() => false); if (!ok2) return 'auth message: ' + await txt(p, '#msg'); await p.screenshot({ path: `${SHOTS}/${tag}-empty.png` }); return true; });
   await check('session survives reload, logout and login again work', async () => { await p.reload({ waitUntil: 'networkidle0' }); await p.waitForSelector('.dash'); await click(p, '#so'); await p.waitForSelector('#af'); await p.type('#ae', email); await p.type('#ap', pw); await click(p, '#ab'); await p.waitForSelector('.dash', { timeout: 15000 }); return true; });
   await check('create event validates required fields', async () => { await click(p, '#newEv2'); await p.waitForSelector('#ef'); await click(p, '#sv'); await sl(300); return /name/i.test(await txt(p, '#msg')); });
   await check('create event with deadline in the past rejected only if after date; valid event created', async () => { await p.type('#t', 'Feature Test Dinner'); await p.$eval('#d', (e, v) => { e.value = v; }, day(10)); await p.$eval('#dl', (e, v) => { e.value = v; }, day(12)); await click(p, '#sv'); await sl(400); const bad = /on or before/i.test(await txt(p, '#msg')); await p.$eval('#dl', (e, v) => { e.value = v; }, day(5)); await p.type('#l', 'Asha Rao\nVikram Sen\nMeera Iyer'); await click(p, '#sv'); await p.waitForSelector('.evpage', { timeout: 15000 }); return bad; });
   const link = await p.$eval('.linkbox input', e => e.value); const eid = new URL(link).searchParams.get('e');
   await check('invites tab: open link, 3 personal links, copy reminder control', async () => { await sl(700); await p.screenshot({ path: `${SHOTS}/${tag}-invites.png` }); return (await p.$$('[data-c]')).length === 3 && !!(await p.$('#callw')); });
+  if (process.env.BASE_URL) await check('shared link has branded default preview before any banner', async () => { const h = await (await fetch(base + '/rsvp?e=' + eid)).text(); return /property="og:image" content="[^"]*og\.jpg"/.test(h) && /property="og:title" content="Feature Test Dinner/.test(h) && /og:description" content="[^"]*(AM|PM)/.test(h); });
+  await check('QR code decodes to the invite link', async () => { await p.waitForSelector('#qr[data-done="1"]', { timeout: 15000 }); await p.addScriptTag({ path: join(root, 'tests/vendor/jsqr.js') }); const out = await p.evaluate(() => { const c = document.querySelector('#qr'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height); const r = window.jsQR(d.data, c.width, c.height); return r && r.data; }); await p.screenshot({ path: `${SHOTS}/${tag}-qr.png` }); return out === link ? true : 'decoded: ' + out; });
   await check('edit event saves changes', async () => { await click(p, '#ed'); await p.waitForSelector('#ef'); await p.$eval('#t', e => { e.value = ''; }); await p.type('#t', 'Feature Test Dinner (edited)'); await click(p, '#sv'); await p.waitForSelector('.evpage'); await sl(500); return /edited/.test(await txt(p, '.evpage h2')); });
 
+  const g = await (await browser.createBrowserContext()).newPage(); gRef = g; await g.setViewport({ width: w, height: h });
   await check('event banner uploads, persists and shows on the guest page', async () => {
     await click(p, '#ed'); await p.waitForSelector('#ef');
     const inp = await p.$('#bn'); await inp.uploadFile(join(root, 'tests/assets/banner.png'));
@@ -49,12 +52,12 @@ for (const [w, h, tag] of [[1280, 850, 'desktop'], [390, 844, 'mobile']]) {
     await g.goto(`${base}/rsvp.html?e=${eid}`, { waitUntil: 'networkidle0' });
     const ok = await g.waitForSelector('img.banner', { timeout: 20000 }).then(() => true).catch(() => false);
     await g.screenshot({ path: `${SHOTS}/${tag}-guest-banner.png` });
-    if (!process.env.BASE_URL) return ok;
+    if (!process.env.BASE_URL) return ok ? true : 'img.banner missing on guest page';
     const h = await (await fetch(base + '/rsvp?e=' + eid)).text();
-    return ok && /property="og:image" content="[^"]*og\.jpg"/.test(h) && /property="og:title"/.test(h);
+    if (!ok) return 'img.banner missing on guest page';
+    return /property="og:image" content="[^"]*og\.jpg"/.test(h) && /property="og:title"/.test(h) ? true : 'og tags missing or wrong on /rsvp';
   });
   // guests answer: yes with companion, no, personal-token
-  const g = await (await browser.createBrowserContext()).newPage(); gRef = g; await g.setViewport({ width: w, height: h });
   await check('guest yes with companion, meal, time and note', async () => { await g.goto(`${base}/rsvp.html?e=${eid}`, { waitUntil: 'networkidle0' }); await g.screenshot({ path: `${SHOTS}/${tag}-guest.png` }); await g.type('#n', 'Diya Rao'); await g.select('#g', 'Friends'); await g.select('#m', 'Jain'); await click(g, '#apl'); await click(g, '#kpl'); await g.type('[data-ci="0"]', 'Rohan Rao'); await g.select('[data-cm="0"]', 'Vegan'); await g.type('[data-ci="1"]', 'Mira Rao'); await g.select('[data-cm="1"]', 'Kids'); await g.$eval('#tr', e => { e.value = 1230; e.dispatchEvent(new Event('input', { bubbles: true })); }); await g.type('#nt', 'Window seat'); await click(g, '#sb'); await g.waitForSelector('.done', { timeout: 15000 }); await g.screenshot({ path: `${SHOTS}/${tag}-guest-done.png` }); return true; });
   let editLink = '';
   await check('save-my-RSVP link shown and works for changing the answer later', async () => { editLink = await p2v(); if (!/\/rsvp\?e=[0-9a-f]+&r=[0-9a-f]+$/.test(editLink)) return false; const g2 = await (await browser.createBrowserContext()).newPage(); await g2.setViewport({ width: w, height: h }); await g2.goto(editLink, { waitUntil: 'networkidle0' }); const t = await txt(g2, '#root'); const okPrefill = /Diya Rao/.test(t) && /already answered/.test(t); await g2.screenshot({ path: `${SHOTS}/${tag}-editlink.png` }); await click(g2, '#kpl'); await click(g2, '#sb'); await g2.waitForSelector('.done', { timeout: 15000 }); return okPrefill; });

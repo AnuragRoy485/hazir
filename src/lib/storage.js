@@ -48,6 +48,42 @@ async function makePreview(file) {
   return blob;
 }
 
+
+/** Branded 1200x630 card drawn when the host has no banner of their own, so shared links
+ * still get a Hazir preview with the event name, date and time. */
+async function makeDefaultCard({ title, when, host }) {
+  const W = 1200, H = 630, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  x.fillStyle = '#f7f4ee'; x.fillRect(0, 0, W, H);
+  x.strokeStyle = '#e3ddd2'; x.lineWidth = 3; x.strokeRect(30, 30, W - 60, H - 60);
+  x.textAlign = 'center';
+  x.fillStyle = '#1c1a17';
+  x.font = 'italic 700 52px Georgia, "Times New Roman", serif';
+  x.fillText('Hazir.', W / 2, 128);
+  // Event name: up to two lines, shrinking until it fits.
+  const words = String(title || 'You are invited').split(/\s+/);
+  let size = 88, lines = [];
+  const wrap = () => { const L = ['']; for (const w of words) { const i = L.length - 1; const t = L[i] ? L[i] + ' ' + w : w; if (x.measureText(t).width > W - 240 && L[i]) { if (L.length === 2) { L[1] = L[1] + ' …'; break; } L.push(w); } else L[i] = t; } return L; };
+  for (; size >= 46; size -= 8) { x.font = `700 ${size}px Georgia, "Times New Roman", serif`; lines = wrap(); if (lines.every(l => x.measureText(l).width <= W - 240)) break; }
+  lines.forEach((l, i) => x.fillText(l, W / 2, 268 + i * (size + 14)));
+  x.fillStyle = '#5c5648';
+  x.font = '400 40px Georgia, "Times New Roman", serif';
+  const sub = [when, host ? 'Hosted by ' + host : ''].filter(Boolean).join('  ·  ');
+  if (sub) x.fillText(sub, W / 2, 268 + lines.length * (size + 14) + 42);
+  x.font = 'italic 400 34px Georgia, "Times New Roman", serif';
+  x.fillText('RSVP with one tap', W / 2, H - 76);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.86));
+  if (!blob) throw new Error('Could not prepare the preview image.');
+  return blob;
+}
+
+/** Uploads only the branded preview card ({ banner_og }) for an event without a custom banner. */
+export async function uploadFallbackOg(eventId, details) {
+  const banner_og = await put(`${eventId}/og.jpg`, await makeDefaultCard(details), 'image/jpeg');
+  return { banner_og };
+}
+
 /** Uploads the original banner plus its watermarked preview copy; returns { banner, banner_og } URLs. */
 export async function uploadBanner(eventId, file) {
   const ext = EXT[file.type] || 'jpg';

@@ -36,7 +36,9 @@ export default async function handler(req, res) {
       if (r.ok) ev = await r.json();
     }
     if (!ev) return send(html);
-    const desc = [fmtDate(ev.date), ev.host && 'Hosted by ' + ev.host, ev.venue, 'RSVP on Hazir'].filter(Boolean).join(' · ');
+    const fmtT = m => (m == null || isNaN(m)) ? '' : `${((Math.floor(m / 60) + 11) % 12) + 1}:${String(m % 60).padStart(2, '0')} ${m >= 720 ? 'PM' : 'AM'}`;
+    const when = fmtDate(ev.date) + (fmtT(ev.time) ? ', ' + fmtT(ev.time) : '');
+    const desc = [when, ev.host && 'Hosted by ' + ev.host, ev.venue, 'RSVP on Hazir'].filter(Boolean).join(' · ');
     const tags = [
       '<meta property="og:type" content="website">',
       '<meta property="og:site_name" content="Hazir">',

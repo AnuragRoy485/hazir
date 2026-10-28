@@ -1,8 +1,8 @@
 import { auth } from '../../lib/auth.js';
 import { db } from '../../lib/db.js';
 import { $, toast } from '../../lib/ui.js';
-import { OCCASIONS, TZS, browserTz, zonedToIso, isoToZoned, esc } from '../../lib/format.js';
-import { uploadBanner, deleteBanner, BANNER_TYPES, BANNER_MAX } from '../../lib/storage.js';
+import { OCCASIONS, TZS, browserTz, zonedToIso, isoToZoned, esc, fmtDate, fmtTime } from '../../lib/format.js';
+import { uploadBanner, uploadFallbackOg, deleteBanner, BANNER_TYPES, BANNER_MAX } from '../../lib/storage.js';
 import { view, busy, niceErr } from './ctx.js';
 import { R } from './ctx.js';
 
@@ -19,10 +19,9 @@ export function eventForm(ev){
     <div class="two"><label class="field">Hosted at (optional)<input id="vn" maxlength="120" value="${esc(e.venue||'')}" placeholder="Venue or address"></label><label class="field">Plus-ones up to<select id="mp">${[1,2,3,4,6,8,10].map(x=>`<option${x==e.max_party?' selected':''}>${x}</option>`).join('')}</select></label></div>
     <label class="field">Event banner (optional)
       <input id="bn" type="file" accept="${BANNER_TYPES.join(',')}" hidden>
-      <span class="bnbox" id="bnbox"><img id="bnimg" alt="Event banner preview" ${e.banner?`src="${esc(e.banner)}"`:''} ${e.banner?'':'hidden'}><span class="bnph" id="bnph" ${e.banner?'hidden':''}>Choose an image</span></span>
+      <span class="bnbox" id="bnbox" tabindex="0" role="button" aria-label="Event banner. Activate to choose an image; when one is set, change or remove it."><img id="bnimg" alt="Event banner preview" ${e.banner?`src="${esc(e.banner)}"`:''} ${e.banner?'':'hidden'}><span class="bnph" id="bnph" ${e.banner?'hidden':''}>Choose an image</span><span class="bnact" id="bnact" ${e.banner?'':'hidden'}><button type="button" class="mini" id="bnchg">Change banner</button><button type="button" class="mini" id="bnrem">Remove banner</button></span></span>
     </label>
     <p class="fine">Shown at the top of your invite, and it becomes the preview image when you share the link on WhatsApp or Facebook, with the Hazir watermark. PNG, JPG or WebP, up to 5 MB.</p>
-    ${e.banner?'<label class="bnrm"><input type="checkbox" id="bnrm"> Remove the current banner</label>':''}
     <div class="two"><label class="field">RSVP closes on (optional)<input id="dl" type="date" value="${dz.date}"></label><label class="field">At what time<input id="dt" type="time" value="${dz.time}"></label></div>
     <label class="field">Timezone for the deadline<select id="tz">${zs.map(x=>`<option${x===e.tz?' selected':''}>${x}</option>`).join('')}</select></label>
     <p class="fine">Guests cannot answer after this exact moment. The server enforces it, not just the page.</p>
@@ -33,16 +32,32 @@ export function eventForm(ev){
     <button class="btn full" id="sv">${ev?'Save changes':'Create event'}</button>
   </form></div></section>`);
   $('#bk').onclick=()=>ev?R.openEvent(ev.id):R.listView();
-  let bfile=null;const bni=$('#bn'),bimg=$('#bnimg'),bph=$('#bnph');
-  $('#bnbox').onclick=()=>bni.click();
+  let bfile=null,rmPending=false;
+  const bni=$('#bn'),bimg=$('#bnimg'),bph=$('#bnph'),bact=$('#bnact'),bbox=$('#bnbox');
+  const syncBn=()=>{
+    const has=!!(bfile||e.banner);
+    if(!bfile&&e.banner&&bimg.getAttribute('src')!==e.banner)bimg.src=e.banner;
+    bimg.hidden=!has;
+    bbox.classList.toggle('rm',rmPending);
+    bph.hidden=has&&!rmPending;
+    bph.textContent=!has?'Choose an image':'Will be removed when you save';
+    bact.hidden=!has;
+    $('#bnrem').textContent=rmPending?'Undo remove':'Remove banner';
+  };
+  bbox.addEventListener('click',y=>{if(y.target.closest('button'))return;const has=!!(bfile||e.banner);if(has&&matchMedia('(hover: none)').matches){bbox.classList.toggle('on');return}bni.click()});
+  bbox.addEventListener('keydown',y=>{if(y.key==='Enter'||y.key===' '){y.preventDefault();bni.click()}});
+  $('#bnchg').onclick=()=>bni.click();
+  $('#bnrem').onclick=()=>{if(bfile){bfile=null;bni.value='';rmPending=false}else if(e.banner){rmPending=!rmPending}bbox.classList.remove('on');syncBn()};
   bni.onchange=()=>{const f=bni.files[0],m=$('#msg');if(!f)return;
     if(!BANNER_TYPES.includes(f.type)){m.hidden=false;m.textContent='The banner needs to be a PNG, JPG or WebP image.';bni.value='';return}
     if(f.size>BANNER_MAX){m.hidden=false;m.textContent='Banner images can be up to 5 MB.';bni.value='';return}
-    m.hidden=true;bfile=f;const r=new FileReader();r.onload=()=>{bimg.src=r.result;bimg.hidden=false;bph.hidden=true};r.readAsDataURL(f)};
-  const saveBanner=async id=>{
-    const rm=$('#bnrm');
+    m.hidden=true;rmPending=false;const r=new FileReader();r.onload=()=>{bimg.src=r.result;bfile=f;syncBn()};r.readAsDataURL(f)};
+  syncBn();
+  const saveBanner=async(id,row)=>{
+    const card={title:row.title,when:fmtDate(row.event_date)+' \u00b7 '+fmtTime(row.default_time),host:row.host_name};
     if(bfile){const urls=await uploadBanner(id,bfile);await db('events?id=eq.'+id,{method:'PATCH',body:urls,prefer:'return=minimal'});if(ev&&ev.banner)deleteBanner(ev.id,ev.banner,ev.banner_og)}
-    else if(ev&&ev.banner&&rm&&rm.checked){await db('events?id=eq.'+id,{method:'PATCH',body:{banner:null,banner_og:null},prefer:'return=minimal'});deleteBanner(ev.id,ev.banner,ev.banner_og)}
+    else if(ev&&ev.banner&&rmPending){const og=await uploadFallbackOg(id,card);await db('events?id=eq.'+id,{method:'PATCH',body:{banner:null,banner_og:og.banner_og},prefer:'return=minimal'});deleteBanner(ev.id,ev.banner,ev.banner_og)}
+    else if(!e.banner){const og=await uploadFallbackOg(id,card);await db('events?id=eq.'+id,{method:'PATCH',body:{banner_og:og.banner_og},prefer:'return=minimal'})}
   };
   $('#ef').onsubmit=async x=>{x.preventDefault();const b=$('#sv'),m=$('#msg');
     const [hh,mm]=($('#tm').value||'19:00').split(':').map(Number);
@@ -52,12 +67,12 @@ export function eventForm(ev){
     busy(b,1,'Saving...');
     try{
       if(ev){await db('events?id=eq.'+ev.id,{method:'PATCH',body:row});
-        try{await saveBanner(ev.id)}catch(err){toast('Details saved, but the banner failed: '+niceErr(err),1)}
+        try{await saveBanner(ev.id,row)}catch(err){toast('Details saved, but the banner failed: '+niceErr(err),1)}
         toast('Saved');R.openEvent(ev.id)}
       else{const [c]=await db('events',{method:'POST',body:row});
         const names=[...new Set(($('#l').value||'').split('\n').map(s=>s.trim()).filter(Boolean))].slice(0,1500);
         if(names.length)await db('invitees',{method:'POST',body:names.map(n=>({event_id:c.id,name:n.slice(0,40)}))});
-        try{await saveBanner(c.id)}catch(err){toast('Event created, but the banner failed: '+niceErr(err),1)}
+        try{await saveBanner(c.id,row)}catch(err){toast('Event created, but the banner failed: '+niceErr(err),1)}
         toast('Event created');R.openEvent(c.id,'share')}
     }catch(err){m.hidden=false;m.textContent=niceErr(err)}finally{busy(b,0)}};
 }
