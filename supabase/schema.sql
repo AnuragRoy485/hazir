@@ -870,3 +870,69 @@ begin
         (e.banner is not null) as has_banner
       from public.events e order by e.created_at desc limit 200) v));
 end $$;
+
+-- Migration 16: admin create paths - record an answer (walk-in parity with hosts)
+-- and create an event for any host. Host accounts themselves are created by
+-- signup only; the admin area never manufactures auth credentials.
+create or replace function public.admin_add_response(p_event_id text, p_name text, p_attending boolean,
+  p_adults int default 1, p_kids int default 0, p_grp text default null, p_meal text default null,
+  p_arrival int default null, p_note text default 'Added by admin') returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_title text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if p_name is null or char_length(trim(p_name)) = 0 or char_length(p_name) > 40 then
+    raise exception 'name must be 1-40 characters'; end if;
+  select title into v_title from public.events where id = p_event_id;
+  if v_title is null then raise exception 'event not found'; end if;
+  insert into public.responses (event_id, name, attending, party, adults, kids, grp, meal, arrival, note)
+  values (p_event_id, left(trim(p_name),40), p_attending,
+    greatest(0, least(10, coalesce(p_adults,1))) + greatest(0, least(10, coalesce(p_kids,0))),
+    greatest(0, least(10, coalesce(p_adults,1))), greatest(0, least(10, coalesce(p_kids,0))),
+    nullif(left(trim(coalesce(p_grp,'')),20),''), nullif(left(trim(coalesce(p_meal,'')),20),''),
+    case when p_arrival between 0 and 1439 then p_arrival else null end,
+    nullif(left(trim(coalesce(p_note,'')),120),''));
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_add_response', jsonb_build_object('event', v_title, 'guest', trim(p_name)));
+end $$;
+
+create or replace function public.admin_create_event(p_host_email text, p_title text, p_occasion text,
+  p_event_date date, p_host_name text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_host uuid; v_id text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if p_title is null or char_length(trim(p_title)) = 0 or char_length(p_title) > 80 then
+    raise exception 'title must be 1-80 characters'; end if;
+  select id into v_host from auth.users where email = trim(p_host_email);
+  if v_host is null then raise exception 'no account with that email'; end if;
+  insert into public.events (title, occasion, event_date, host_name, owner)
+  values (trim(p_title), left(trim(coalesce(p_occasion,'Other')),40), coalesce(p_event_date, current_date + 30),
+    nullif(left(trim(coalesce(p_host_name,'')),40),''), v_host)
+  returning id into v_id;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_create_event', jsonb_build_object('title', trim(p_title), 'host', trim(p_host_email)));
+  return jsonb_build_object('id', v_id);
+end $$;
+
+revoke all on function public.admin_add_response(text, text, boolean, int, int, text, text, int, text),
+  public.admin_create_event(text, text, text, date, text) from public;
+grant execute on function public.admin_add_response(text, text, boolean, int, int, text, text, int, text),
+  public.admin_create_event(text, text, text, date, text) to authenticated;
+
+-- Migration 16b: audit trail entry when the admin emails a host a password-reset
+-- link. The actual email is sent by Supabase's public recovery endpoint with the
+-- publishable key; this RPC only records that the admin requested it.
+create or replace function public.admin_request_password_reset(p_email text) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if not exists (select 1 from auth.users where email = trim(p_email)) then
+    raise exception 'no account with that email'; end if;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_request_password_reset', jsonb_build_object('user', trim(p_email)));
+end $$;
+
+revoke all on function public.admin_request_password_reset(text) from public;
+grant execute on function public.admin_request_password_reset(text) to authenticated;
