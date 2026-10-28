@@ -215,3 +215,7 @@ textarea{font-family:Georgia,serif}
 .legal p,.legal li{font-size:16px;color:#222;margin-bottom:10px;line-height:1.65}
 .legal ul{padding-left:22px;margin-bottom:14px}
 .legal .upd{color:var(--mut);font-size:14px;margin-bottom:8px}
+
+/* Sitewide: invisible scrollbars, scrolling unchanged (wheel, touch, keyboard). */
+* { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { display: none; }
