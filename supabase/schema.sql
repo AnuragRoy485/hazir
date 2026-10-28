@@ -906,9 +906,9 @@ begin
     raise exception 'title must be 1-80 characters'; end if;
   select id into v_host from auth.users where email = trim(p_host_email);
   if v_host is null then raise exception 'no account with that email'; end if;
-  insert into public.events (title, occasion, event_date, host_name, owner)
+  insert into public.events (title, occasion, event_date, host_name, invited, owner)
   values (trim(p_title), left(trim(coalesce(p_occasion,'Other')),40), coalesce(p_event_date, current_date + 30),
-    nullif(left(trim(coalesce(p_host_name,'')),40),''), v_host)
+    nullif(left(trim(coalesce(p_host_name,'')),40),''), 100, v_host)
   returning id into v_id;
   insert into public.admin_audit_log (actor, action, detail)
     values (v_uid, 'admin_create_event', jsonb_build_object('title', trim(p_title), 'host', trim(p_host_email)));
