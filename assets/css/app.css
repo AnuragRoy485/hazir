@@ -114,3 +114,7 @@ body.noscroll{overflow:hidden}
 .tbl th{text-align:left;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:400;padding:8px 10px;border-bottom:1.5px solid #000}
 .tbl td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 .tbl tr:last-child td{border-bottom:0}
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tblwrap .tbl{min-width:620px}
+.testcard{opacity:.92}
+@media(max-width:560px){.statgrid{grid-template-columns:repeat(2,1fr)}}

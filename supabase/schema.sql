@@ -454,3 +454,118 @@ end $$;
 
 revoke all on function public.is_admin(), public.admin_overview(), public.admin_audit() from public;
 grant execute on function public.is_admin(), public.admin_overview(), public.admin_audit() to authenticated;
+
+-- Migration 9: super-admin CRUD. Every mutation is a security-definer function that
+-- checks the admin role, validates input, writes an audit row (with what changed),
+-- and only then acts. Guards: an admin cannot delete their own account or another
+-- admin; display-name and event edits keep the same limits as the public tables.
+-- Passwords are never readable or writable here (Supabase Auth stores hashes only).
+
+create or replace function public.admin_update_user(p_user_id uuid, p_name text) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_email text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if p_name is null or char_length(trim(p_name)) = 0 or char_length(p_name) > 40 then
+    raise exception 'name must be 1-40 characters'; end if;
+  update auth.users set raw_user_meta_data = coalesce(raw_user_meta_data,'{}'::jsonb) || jsonb_build_object('name', trim(p_name)),
+    updated_at = now() where id = p_user_id returning email into v_email;
+  if v_email is null then raise exception 'user not found'; end if;
+  insert into public.admin_audit_log (actor, action, detail) values (v_uid, 'admin_update_user', jsonb_build_object('user', v_email, 'name', trim(p_name)));
+end $$;
+
+create or replace function public.admin_delete_user(p_user_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_email text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if p_user_id = v_uid then raise exception 'you cannot delete your own account from here'; end if;
+  if exists (select 1 from public.user_roles where user_id = p_user_id) then
+    raise exception 'cannot delete an admin account'; end if;
+  delete from auth.users where id = p_user_id returning email into v_email;
+  if v_email is null then raise exception 'user not found'; end if;
+  insert into public.admin_audit_log (actor, action, detail) values (v_uid, 'admin_delete_user', jsonb_build_object('user', v_email));
+end $$;
+
+create or replace function public.admin_update_event(p_event_id text, p_title text, p_occasion text, p_event_date date, p_host_name text) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if p_title is null or char_length(trim(p_title)) = 0 or char_length(p_title) > 80 then
+    raise exception 'title must be 1-80 characters'; end if;
+  if p_occasion is null or char_length(trim(p_occasion)) = 0 or char_length(p_occasion) > 40 then
+    raise exception 'occasion must be 1-40 characters'; end if;
+  if p_event_date is null then raise exception 'date is required'; end if;
+  if p_host_name is not null and char_length(p_host_name) > 40 then
+    raise exception 'host name must be at most 40 characters'; end if;
+  update public.events set title = trim(p_title), occasion = trim(p_occasion), event_date = p_event_date,
+    host_name = nullif(trim(coalesce(p_host_name,'')),'') where id = p_event_id;
+  if not found then raise exception 'event not found'; end if;
+  insert into public.admin_audit_log (actor, action, detail) values (v_uid, 'admin_update_event', jsonb_build_object('event', p_event_id, 'title', trim(p_title)));
+end $$;
+
+create or replace function public.admin_delete_event(p_event_id text) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_title text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  select title into v_title from public.events where id = p_event_id;
+  if v_title is null then raise exception 'event not found'; end if;
+  begin
+    delete from storage.objects where bucket_id = 'banners' and (storage.foldername(name))[1] = p_event_id;
+  exception when others then null; -- storage rows may not be SQL-deletable; orphan bytes are acceptable
+  end;
+  delete from public.events where id = p_event_id;
+  insert into public.admin_audit_log (actor, action, detail) values (v_uid, 'admin_delete_event', jsonb_build_object('event', p_event_id, 'title', v_title));
+end $$;
+
+revoke all on function public.admin_update_user(uuid, text), public.admin_delete_user(uuid),
+  public.admin_update_event(text, text, text, date, text), public.admin_delete_event(text) from public;
+grant execute on function public.admin_update_user(uuid, text), public.admin_delete_user(uuid),
+  public.admin_update_event(text, text, text, date, text), public.admin_delete_event(text) to authenticated;
+
+-- Migration 10: readable admin overview and activity. Users carry their display name
+-- and a test flag (automated-check accounts use @example.com addresses) so the admin
+-- page can separate real hosts from test data without hiding or renaming anything.
+-- The audit function also returns the actor's email (left join: a deleted account
+-- still shows its recorded action, with no email).
+create or replace function public.admin_overview() returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  insert into public.admin_audit_log (actor, action) values (v_uid, 'admin_overview');
+  return jsonb_build_object(
+    'totals', jsonb_build_object(
+      'users', (select count(*) from auth.users),
+      'test_users', (select count(*) from auth.users where email ilike '%@example.com'),
+      'events', (select count(*) from public.events),
+      'guests', (select count(*) from public.invitees),
+      'answers', (select count(*) from public.responses),
+      'banners', (select count(*) from public.events where banner is not null)),
+    'users', (select coalesce(jsonb_agg(u order by u.created_at desc), '[]'::jsonb) from (
+      select au.id, au.email, au.raw_user_meta_data->>'name' as name, au.created_at, au.last_sign_in_at,
+        (au.email ilike '%@example.com') as is_test,
+        (select count(*) from public.events e where e.owner = au.id) as events
+      from auth.users au order by au.created_at desc limit 100) u),
+    'events', (select coalesce(jsonb_agg(v order by v.created_at desc), '[]'::jsonb) from (
+      select e.id, e.title, e.occasion, e.event_date, e.created_at, e.host_name,
+        (select email from auth.users au where au.id = e.owner) as host_email,
+        (select count(*) from public.invitees i where i.event_id = e.id) as guests,
+        (select count(*) from public.responses r where r.event_id = e.id) as answers,
+        (select count(*) from public.responses r where r.event_id = e.id and r.attending) as coming,
+        (e.banner is not null) as has_banner
+      from public.events e order by e.created_at desc limit 200) v));
+end $$;
+
+create or replace function public.admin_audit() returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  return (select coalesce(jsonb_agg(l order by l.created_at desc), '[]'::jsonb) from (
+    select a.actor, a.action, a.detail, a.created_at, au.email as actor_email
+    from public.admin_audit_log a left join auth.users au on au.id = a.actor
+    order by a.created_at desc limit 200) l);
+end $$;
