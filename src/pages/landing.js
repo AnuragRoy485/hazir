@@ -18,8 +18,8 @@ $$('[data-count]').forEach(e=>io.observe(e));
 // ---------- nav, progress, cursor, tilt, magnetic
 let lastY=0;
 addEventListener('scroll',()=>{const y=scrollY,h=document.documentElement.scrollHeight-innerHeight;$('#progress').style.width=(y/h*100)+'%';const n=$('#nav');n.classList.toggle('scrolled',y>10);n.classList.toggle('hide',y>lastY&&y>400);lastY=y},{passive:true});
-const cur=$('#cursor');
-addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;cur.style.transform=`translate(${e.clientX-17}px,${e.clientY-17}px)`});
+const cur=$('#cursor');cur.style.willChange='transform';
+addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;cur.style.transform=`translate3d(${e.clientX-17}px,${e.clientY-17}px,0)`});
 document.addEventListener('pointerover',e=>{cur.classList.toggle('big',!!e.target.closest('a,button,.chip,.tile,.clock'))});
 const tilt=$('#heroPhone');
 if(tilt&&!reduce)addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const x=(e.clientX/innerWidth-.5),y=(e.clientY/innerHeight-.5);tilt.style.transform=`rotateY(${x*14}deg) rotateX(${-y*10}deg)`});
