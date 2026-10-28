@@ -124,3 +124,16 @@ input[type="checkbox"]{width:16px;height:16px;accent-color:#000;cursor:pointer}
 .bulkbar{border-color:#000}
 .dlg-wide{max-width:640px;max-height:88vh;overflow-y:auto;text-align:left}
 .modal-wrap .dlg{background:#fff}
+
+/* Admin tables become stacked cards on small screens so every field and action
+   stays readable without sideways scrolling. */
+@media (max-width: 720px) {
+  .tbl.cardsm thead { display: none; }
+  .tbl.cardsm tr { display: block; border: 1px solid #e3ddd2; border-radius: 12px; padding: 10px 12px; margin: 10px 0; background: #fff; }
+  .tbl.cardsm td { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border: 0; padding: 4px 0; text-align: right; word-break: break-word; }
+  .tbl.cardsm td::before { content: attr(data-l); font-weight: 600; text-align: left; color: #5c5648; flex-shrink: 0; }
+  .tbl.cardsm td.nolabel::before { content: none; }
+  .tbl.cardsm td.nolabel { justify-content: flex-start; }
+  .tbl.cardsm td.row { justify-content: flex-end; flex-wrap: wrap; }
+  .tbl.cardsm td.row::before { content: none; }
+}
