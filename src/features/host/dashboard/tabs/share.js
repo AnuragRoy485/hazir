@@ -13,7 +13,7 @@ export async function share(p){
   p.innerHTML=`<div class="card reveal in"><h4>Open invite link</h4><p class="muted">Anyone with this link can answer. They see only the event name, date and deadline. Never other guests.</p>
     <div class="linkbox"><input readonly value="${link}"><button class="btn btn-sm" id="cl">Copy</button></div>
     <div class="row"><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${link}">Preview guest page</a><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('You are invited to '+ev.title+' on '+fmtDate(ev.event_date)+'. Please RSVP: '+link)}">Share on WhatsApp</a></div></div>
-   <div class="card reveal in"><h4>QR code</h4><p class="muted">Guests point their phone camera at it and your RSVP page opens. The Hazir name sits below the code, so scanning always works.</p>
+   <div class="card reveal in"><h4>QR code</h4><p class="muted">Guests point their phone camera at it and your RSVP page opens. The Hazir name sits below the code, keeping the pattern clear.</p>
     <div class="qrbox"><canvas id="qr" width="640" height="780" role="img" aria-label="QR code that opens the invite link"></canvas></div>
     <div class="row"><button class="btn btn-ghost btn-sm" id="qdl">Download PNG</button></div></div>
    <div class="card reveal in"><h4>Personal links</h4><p class="muted">Each named guest gets their own link, so you know exactly who answered and they cannot answer as someone else.</p>

@@ -13,7 +13,7 @@ export function loadQr() {
 }
 
 /** Draws the invite QR on a canvas: white card, dark modules, "Hazir." caption below the
- * code (never on top of it, so scanning always works). */
+ * code (never on top of it, so the pattern stays clear). */
 export async function drawQr(cv, link) {
   const qrcode = await loadQr();
   const q = qrcode(0, 'M');
