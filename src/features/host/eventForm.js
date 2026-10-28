@@ -2,7 +2,7 @@ import { auth } from '../../lib/auth.js';
 import { db } from '../../lib/db.js';
 import { $, toast } from '../../lib/ui.js';
 import { OCCASIONS, TZS, browserTz, zonedToIso, isoToZoned, esc, fmtDate, fmtTime } from '../../lib/format.js';
-import { uploadBanner, uploadFallbackOg, deleteBanner, BANNER_TYPES, BANNER_MAX } from '../../lib/storage.js';
+import { uploadBanner, uploadFallbackOg, cleanupOldBanner, BANNER_TYPES, BANNER_MAX } from '../../lib/storage.js';
 import { view, busy, niceErr } from './ctx.js';
 import { R } from './ctx.js';
 
@@ -55,8 +55,8 @@ export function eventForm(ev){
   syncBn();
   const saveBanner=async(id,row)=>{
     const card={title:row.title,when:fmtDate(row.event_date)+' \u00b7 '+fmtTime(row.default_time),host:row.host_name};
-    if(bfile){const urls=await uploadBanner(id,bfile);await db('events?id=eq.'+id,{method:'PATCH',body:urls,prefer:'return=minimal'});if(ev&&ev.banner)deleteBanner(ev.id,ev.banner,ev.banner_og)}
-    else if(ev&&ev.banner&&rmPending){const og=await uploadFallbackOg(id,card);await db('events?id=eq.'+id,{method:'PATCH',body:{banner:null,banner_og:og.banner_og},prefer:'return=minimal'});deleteBanner(ev.id,ev.banner,ev.banner_og)}
+    if(bfile){const urls=await uploadBanner(id,bfile);await db('events?id=eq.'+id,{method:'PATCH',body:urls,prefer:'return=minimal'});if(ev&&ev.banner)cleanupOldBanner(ev.id,ev.banner,urls.banner)}
+    else if(ev&&ev.banner&&rmPending){const og=await uploadFallbackOg(id,card);await db('events?id=eq.'+id,{method:'PATCH',body:{banner:null,banner_og:og.banner_og},prefer:'return=minimal'});cleanupOldBanner(ev.id,ev.banner,null)}
     else if(!e.banner){const og=await uploadFallbackOg(id,card);await db('events?id=eq.'+id,{method:'PATCH',body:{banner_og:og.banner_og},prefer:'return=minimal'})}
   };
   $('#ef').onsubmit=async x=>{x.preventDefault();const b=$('#sv'),m=$('#msg');

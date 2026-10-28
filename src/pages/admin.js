@@ -6,7 +6,7 @@ import { auth } from '../lib/auth.js';
 import { rpc } from '../lib/db.js';
 import { $, $$, initEffects, confirmBox, toast } from '../lib/ui.js';
 import { esc, fmtDate, fmtTime, OCCASIONS, TZS, zonedToIso, isoToZoned, guestLink } from '../lib/format.js';
-import { uploadBanner, uploadFallbackOg, deleteBanner, BANNER_TYPES, BANNER_MAX } from '../lib/storage.js';
+import { uploadBanner, uploadFallbackOg, cleanupOldBanner, BANNER_TYPES, BANNER_MAX } from '../lib/storage.js';
 
 const root = $('#root'), navr = $('#navr');
 
@@ -213,11 +213,11 @@ function editEventFull(ov, id, again) {
       if (bfile) {
         const urls = await uploadBanner(id, bfile);
         patch.banner = urls.banner; patch.banner_og = urls.banner_og;
-        if (ev.banner) deleteBanner(ev.id, ev.banner, ev.banner_og);
+        if (ev.banner) cleanupOldBanner(ev.id, ev.banner, urls.banner);
       } else if (ev.banner && rmPending) {
         const og = await uploadFallbackOg(id, { title: patch.title, when: fmtDate(patch.event_date), host: patch.host_name });
         patch.banner = ''; patch.banner_og = og.banner_og;
-        deleteBanner(ev.id, ev.banner, ev.banner_og);
+        cleanupOldBanner(ev.id, ev.banner, null);
       }
     } catch (err) { toast('Banner failed: ' + (err.message || 'upload error'), 1); return; }
     try { await rpc('admin_update_event', { p_event_id: id, p_patch: patch }); done(); again('Event updated'); }

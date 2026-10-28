@@ -92,6 +92,15 @@ export async function uploadBanner(eventId, file) {
   return { banner, banner_og };
 }
 
+/** Best-effort cleanup of a replaced or removed banner's ORIGINAL file. Never deletes the
+ * og.jpg preview: after a replace or remove, og.jpg was just rewritten and must stay.
+ * Used after uploadBanner/uploadFallbackOg succeed. */
+export async function cleanupOldBanner(eventId, oldBanner, newBanner) {
+  const base = u => { const m = /\/banners\/[^/]+\/([^/?]+)/.exec(u || ''); return m ? m[1] : null; };
+  const oldPath = base(oldBanner), newPath = base(newBanner);
+  if (oldPath && oldPath !== newPath) await remove(`${eventId}/${oldPath}`);
+}
+
 /** Best-effort cleanup of a replaced or removed banner. Call before deleting the event row. */
 export async function deleteBanner(eventId, banner, banner_og) {
   const m = /\.(\w+)(?:\?|$)/.exec(banner || '');
