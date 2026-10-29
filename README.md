@@ -6,7 +6,7 @@
 
 Hazir means *present, here, accounted for*.
 
-- Live demo: https://hazir-two.vercel.app/
+- Live demo: [https://www.hazir.live/](https://www.hazir.live/)
 - Stack: plain HTML, CSS and ES modules in the browser (no build step), Postgres with Row Level Security and email/password auth on a free hosted backend, static hosting on a free tier.
 
 ## Why it exists
@@ -95,7 +95,7 @@ The test creates two throwaway host accounts and an event, answers it from a sep
 - Free hosting tiers have limits and some are for non-commercial use only. Check your host's terms before running a paid service on it.
 - Hazir sends no messages. WhatsApp buttons open WhatsApp with a prefilled text for you to send.
 
-## Licence
+## License
 
 Hazir is source-available under the **MIT License with the Commons Clause** (see [LICENSE](LICENSE)).
 
