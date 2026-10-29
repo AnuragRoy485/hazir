@@ -190,6 +190,15 @@ if(pinOK){
 }
 $$('.kl').forEach(h=>{if(pinOK&&(h===pinH2||(ctaAct&&ctaAct.w.contains(h))))return;klIO.observe(h)});
 $$('.wipe').forEach(h=>klIO.observe(h));
+// Anchor links into pinned acts land where the act already has content on screen.
+if(pinOK)$$('a[href^="#"]').forEach(a=>{a.addEventListener('click',e=>{
+  const id=a.getAttribute('href').slice(1),t=id&&document.getElementById(id);
+  if(!t)return;const w=t.closest('.act-pin');if(!w)return;
+  e.preventDefault();
+  const p={'act-how':.45,'act-occ':.3}[w.id]??.3;
+  window.scrollTo({top:w.getBoundingClientRect().top+scrollY+(w.offsetHeight-innerHeight)*p,behavior:'smooth'});
+  history.replaceState(null,'','#'+id);
+})});
 // Layered parallax on elements outside the pinned hero, scrubbed to scroll.
 const plxEls=$$('[data-plx]').filter(el=>!(heroAct&&heroAct.w.contains(el))).map(el=>({el,r:parseFloat(el.dataset.plx)||0}));
 const actP=a=>{const b=a.w.getBoundingClientRect();return clamp01(-b.top/(b.height-innerHeight))};
