@@ -140,7 +140,7 @@ if(cForm){
     cBtn.disabled=true;cBtn.textContent='Sending...';cSt.hidden=true;
     try{
       await request('/rest/v1/rpc/submit_contact',{method:'POST',body:{p_name:name,p_email:email,p_message:msg}});
-      cForm.reset();say(`Thank you, ${name.split(' ')[0]}. Your message is with us - we answer every one.`);
+      cForm.reset();say(`Thank you, ${name.split(' ')[0]}. Your message is with the Hazir owner.`);
     }catch(err){
       const m=err&&err.message||'';
       say(/Could not find the function/.test(m)?'Messages are not being received just yet - the owner is finishing the setup.':
