@@ -184,9 +184,9 @@ if(pinOK){
   if(ctaH2){ctaH2.classList.add('kl-pin');ctaLines=[...ctaH2.querySelectorAll('.kl-i')]}
   ctaLead=ctaAct.sec.querySelector('.lead');ctaBtns=ctaAct.sec.querySelector('.cta');
   [ctaLead,ctaBtns].forEach(el=>el&&el.classList.remove('reveal'));
-  requestAnimationFrame(()=>{measureHow();fxFrame()});
-  addEventListener('load',()=>{measureHow();fxFrame()});
-  addEventListener('resize',()=>{measureHow();fxFrame()});
+  requestAnimationFrame(()=>{measure();wakeFx()});
+  addEventListener('load',()=>{measure();wakeFx()});
+  addEventListener('resize',()=>{measure();wakeFx()});
 }
 $$('.kl').forEach(h=>{if(pinOK&&(h===pinH2||(ctaAct&&ctaAct.w.contains(h))))return;klIO.observe(h)});
 $$('.wipe').forEach(h=>klIO.observe(h));
@@ -201,54 +201,74 @@ if(pinOK)$$('a[href^="#"]').forEach(a=>{a.addEventListener('click',e=>{
 })});
 // Layered parallax on elements outside the pinned hero, scrubbed to scroll.
 const plxEls=$$('[data-plx]').filter(el=>!(heroAct&&heroAct.w.contains(el))).map(el=>({el,r:parseFloat(el.dataset.plx)||0}));
-const actP=a=>{const b=a.w.getBoundingClientRect();return clamp01(-b.top/(b.height-innerHeight))};
-let fxTick=false;
-function fxFrame(){
-  fxTick=false;
-  const vh=innerHeight;
+// Cached geometry, refreshed on load/resize: animation frames do zero layout reads.
+let G={},occTravel=0,vh=innerHeight;
+function measure(){
+  if(!pinOK)return;
+  vh=innerHeight;const y=scrollY;
+  const g=a=>{if(!a)return null;const r=a.w.getBoundingClientRect();return{top:r.top+y,range:Math.max(1,a.w.offsetHeight-vh)}};
+  G={hero:g(heroAct),how:g(howAct),occ:g(occAct),cta:g(ctaAct)};
+  if(pinWrap&&pinLines.length){const r=pinWrap.getBoundingClientRect();G.pin={top:r.top+y,range:Math.max(1,pinWrap.offsetHeight-vh)}}
+  if(occAct&&occRail)occTravel=Math.max(0,occRail.scrollWidth-occAct.st.clientWidth+60);
+  measureHow();
+}
+const actP=k=>{const g=G[k];return g?clamp01((sy-g.top)/g.range):0};
+// Compositing hints only on elements scrubbed every frame.
+[heroText,heroPlx,ctaLead,ctaBtns,...pinLines,...howSteps,...occTiles,...ctaLines].forEach(el=>{if(el)el.style.willChange='transform,opacity'});
+// Smoothed scroll driver: act progress trails the real scroll position with a
+// short inertial lag, so pinned content glides and eases to rest instead of
+// stepping in chunks with wheel events (the Nightfall feel). The loop sleeps
+// once settled; at rest every value equals the exact scroll position's value.
+let sy=scrollY,syT=sy,fxOn=false,lastT=0;
+function wakeFx(){if(!fxOn){fxOn=true;lastT=performance.now();requestAnimationFrame(fxLoop)}}
+function fxLoop(now){
+  const dt=Math.min(64,now-lastT);lastT=now;
+  const d=syT-sy;
+  if(Math.abs(d)<.05){sy=syT;fxFrame(sy);fxOn=false;return}
+  sy+=d*(1-Math.exp(-dt/105));
+  fxFrame(sy);
+  requestAnimationFrame(fxLoop);
+}
+function fxFrame(y){
   if(plxEls.length){
     const vc=vh/2,rects=plxEls.map(o=>o.el.getBoundingClientRect());
     rects.forEach((b,i)=>{if(b.bottom<-200||b.top>vh+200)return;plxEls[i].el.style.transform=`translate3d(0,${((b.top+b.height/2-vc)*plxEls[i].r).toFixed(1)}px,0)`});
   }
-  if(heroText&&!heroAct)heroText.style.opacity=String(1-clamp01(scrollY/(vh*.8))*.9);
+  if(heroText&&!heroAct)heroText.style.opacity=String(1-clamp01(y/(vh*.8))*.9);
   if(heroAct){
-    const p=actP(heroAct);
+    const p=actP('hero');
     heroText.style.transform=`translate3d(0,${(-p*48).toFixed(1)}px,0)`;
     heroText.style.opacity=(1-seg(p,.52,.4)*.96).toFixed(2);
     if(heroPlx)heroPlx.style.transform=`translate3d(0,${(-p*120).toFixed(1)}px,0)`;
   }
-  if(pinLines.length&&pinWrap){
-    const b=pinWrap.getBoundingClientRect();
-    if(b.bottom>0&&b.top<vh){
-      const p=clamp01(-b.top/(b.height-vh));
-      pinLines.forEach((inner,i)=>{
-        const start=.02+i*.28;
-        const rise=seg(p,start,.16);
-        const dim=i<pinLines.length-1?1-seg(p,start+.3,.14)*.62:1;
-        inner.style.transform=`translate3d(0,${((1-rise)*114).toFixed(1)}%,0)`;
-        inner.style.opacity=dim.toFixed(2);
-      });
-      if(pinBrow)pinBrow.style.opacity=seg(p,0,.05).toFixed(2);
-    }
+  if(pinLines.length&&G.pin){
+    const p=actP('pin');
+    pinLines.forEach((inner,i)=>{
+      const start=.02+i*.28;
+      const rise=seg(p,start,.16);
+      const dim=i<pinLines.length-1?1-seg(p,start+.3,.14)*.62:1;
+      inner.style.transform=`translate3d(0,${((1-rise)*114).toFixed(1)}%,0)`;
+      inner.style.opacity=dim.toFixed(2);
+    });
+    if(pinBrow)pinBrow.style.opacity=seg(p,0,.05).toFixed(2);
   }
   if(howAct&&howPath){
-    const p=actP(howAct);
+    const p=actP('how');
     howPath.style.strokeDashoffset=(1-seg(p,.06,.74)).toFixed(3);
     howNodes.forEach((c,i)=>{c.style.opacity=seg(p,.1+i*.185,.05).toFixed(2)});
     howSteps.forEach((s,i)=>{const r=seg(p,.05+i*.19,.13);s.style.opacity=r.toFixed(2);s.style.transform=`translate3d(0,${((1-r)*26).toFixed(1)}px,0)`});
   }
   if(occAct&&occRail){
-    const p=actP(occAct);
-    const travel=Math.max(0,occRail.scrollWidth-occAct.st.clientWidth+60);
-    occRail.style.transform=`translate3d(${(-travel*smooth(p)).toFixed(1)}px,0,0)`;
-    occTiles.forEach((t,i)=>{const s=seg(p,.04+i*.11,.15);t.style.opacity=(.5+.5*s).toFixed(2);t.style.transform=`translate3d(0,${((1-s)*18).toFixed(1)}px,0)`});
+    const p=actP('occ');
+    occRail.style.transform=`translate3d(${(-occTravel*smooth(p)).toFixed(1)}px,0,0)`;
+    occTiles.forEach((t,i)=>{const s2=seg(p,.04+i*.11,.15);t.style.opacity=(.5+.5*s2).toFixed(2);t.style.transform=`translate3d(0,${((1-s2)*18).toFixed(1)}px,0)`});
   }
   if(ctaAct){
-    const p=actP(ctaAct);
+    const p=actP('cta');
     ctaLines.forEach((inner,i)=>{const rise=seg(p,.02+i*.2,.15);inner.style.transform=`translate3d(0,${((1-rise)*114).toFixed(1)}%,0)`});
     if(ctaLead){const r=seg(p,.34,.16);ctaLead.style.opacity=r.toFixed(2);ctaLead.style.transform=`translate3d(0,${((1-r)*20).toFixed(1)}px,0)`}
     if(ctaBtns){const r=seg(p,.52,.16);ctaBtns.style.opacity=r.toFixed(2);ctaBtns.style.transform=`translate3d(0,${((1-r)*20).toFixed(1)}px,0)`}
   }
 }
-if(fx){addEventListener('scroll',()=>{if(!fxTick){fxTick=true;requestAnimationFrame(fxFrame)}},{passive:true});fxFrame()}
+if(fx){addEventListener('scroll',()=>{syT=scrollY;wakeFx()},{passive:true});if(pinOK)measure();fxFrame(sy)}
 })();
