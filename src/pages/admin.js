@@ -114,7 +114,7 @@ async function paint() {
       <p class="muted">Sent through the Contact us form on the homepage, newest first.</p>
       ${msgs === null ? '<p class="muted">Could not load messages - the latest database update (migration 21) may not be applied yet.</p>' :
       `<div class="tblwrap"><table class="tbl cardsm"><thead><tr><th>When</th><th>From</th><th>Message</th><th></th></tr></thead>
-      <tbody>${(msgs || []).map(m => `<tr><td data-l="When">${ts(m.created_at)}</td><td data-l="From"><b>${esc(m.name || '')}</b><br><a class="muted" href="mailto:${esc(m.email || '')}">${esc(m.email || '')}</a></td><td data-l="Message" class="msgcell">${esc(m.message || '')}</td>
+      <tbody>${(msgs || []).map(m => `<tr><td data-l="When">${ts(m.created_at)}</td><td data-l="From"><span class="fromwrap"><b>${esc(m.name || '')}</b><br><a class="muted" href="mailto:${esc(m.email || '')}">${esc(m.email || '')}</a></span></td><td data-l="Message" class="msgcell">${esc(m.message || '')}</td>
         <td class="nolabel"><button class="mini danger" data-dm="${m.id}">Delete</button></td></tr>`).join('') || '<tr><td colspan="4" class="muted">No messages yet.</td></tr>'}</tbody></table></div>`}
     </div>
     <div class="card reveal in"><h4>Admin activity</h4>

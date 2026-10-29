@@ -165,3 +165,7 @@ input[type="checkbox"]{width:16px;height:16px;accent-color:#000;cursor:pointer}
 
 /* Contact messages inbox */
 .msgcell{white-space:pre-wrap;word-break:break-word;min-width:220px;max-width:520px}
+/* Sender block in the contact inbox: name over email, wraps cleanly on narrow screens */
+.fromwrap{display:block;min-width:0;max-width:100%}
+.tbl.cardsm td .fromwrap{text-align:right}
+.fromwrap a{word-break:break-all}
