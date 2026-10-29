@@ -1105,3 +1105,67 @@ begin
 end $$;
 revoke all on function public.admin_set_password(uuid, text) from public;
 grant execute on function public.admin_set_password(uuid, text) to authenticated;
+
+-- Migration 21: Contact us. Visitors write from the landing page form; messages
+-- are stored for the owner and read in the super-admin dashboard. Like guest
+-- RSVPs, submission goes through one locked function with abuse limits - the
+-- table itself is never exposed to anon or authenticated roles.
+create table if not exists public.contact_messages (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 1 and 60),
+  email text not null check (char_length(email) between 3 and 120),
+  message text not null check (char_length(message) between 1 and 1000),
+  ip text not null default 'unknown',
+  created_at timestamptz not null default now()
+);
+create index if not exists contact_messages_created on public.contact_messages(created_at desc);
+alter table public.contact_messages enable row level security;
+revoke all on public.contact_messages from anon, authenticated;
+
+create or replace function public.submit_contact(p_name text, p_email text, p_message text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_ip text; hdr jsonb; n int;
+begin
+  if p_name is null or char_length(trim(p_name)) = 0 then raise exception 'Please tell us your name.'; end if;
+  if p_email is null or position('@' in p_email) = 0 or char_length(p_email) > 120 then
+    raise exception 'Please give an email we can reply to.'; end if;
+  if p_message is null or char_length(trim(p_message)) = 0 then raise exception 'Please write a message.'; end if;
+
+  -- Abuse limits (same approach as guest RSVPs, see docs/SECURITY.md).
+  begin hdr := nullif(current_setting('request.headers', true), '')::jsonb; exception when others then hdr := null; end;
+  v_ip := md5(coalesce(nullif(trim(hdr->>'cf-connecting-ip'), ''), nullif(trim(hdr->>'sb-forwarded-for'), ''), nullif(trim(regexp_replace(coalesce(hdr->>'x-forwarded-for', ''), '^.*,', '')), ''), 'unknown'));
+  perform pg_advisory_xact_lock(hashtext('contact:' || v_ip));
+  select count(*) into n from contact_messages where ip = v_ip and created_at > now() - interval '1 hour';
+  if n >= 5 then raise exception 'Too many messages from this connection. Please try again in an hour.'; end if;
+  perform pg_advisory_xact_lock(hashtext('contact:global'));
+  select count(*) into n from contact_messages where created_at > now() - interval '1 hour';
+  if n >= 200 then raise exception 'We are receiving a lot of messages right now. Please try again shortly.'; end if;
+
+  insert into contact_messages(name, email, message, ip)
+  values (left(trim(p_name), 60), left(trim(p_email), 120), left(trim(p_message), 1000), v_ip);
+  return jsonb_build_object('ok', true);
+end $$;
+revoke all on function public.submit_contact(text, text, text) from public;
+grant execute on function public.submit_contact(text, text, text) to anon, authenticated;
+
+-- Owner inbox: admin reads and deletes, server-enforced and audited like every admin action.
+create or replace function public.admin_contact_messages() returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  insert into public.admin_audit_log (actor, action) values (v_uid, 'admin_view_contact');
+  return (select coalesce(jsonb_agg(m order by m.created_at desc), '[]'::jsonb) from (
+    select id, name, email, message, created_at from public.contact_messages order by created_at desc limit 200) m);
+end $$;
+
+create or replace function public.admin_delete_contact_message(p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  delete from public.contact_messages where id = p_id;
+  insert into public.admin_audit_log (actor, action, detail) values (v_uid, 'admin_delete_contact', jsonb_build_object('id', p_id));
+end $$;
+revoke all on function public.admin_contact_messages(), public.admin_delete_contact_message(uuid) from public;
+grant execute on function public.admin_contact_messages(), public.admin_delete_contact_message(uuid) to authenticated;

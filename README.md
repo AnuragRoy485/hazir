@@ -37,7 +37,7 @@ Guest (no account):
 - Personal links lock the answer to that guest and let them change it later. Answers close at the exact deadline time, enforced by the database, and guest answers have basic abuse limits (see docs/SECURITY.md).
 - A guest can only see the event title, date, host name and deadline. Never other guests, meals or answers.
 
-Landing page: the story, how it works, and a sample dashboard with made-up guests (stored only in your browser).
+Landing page: the story, how it works, a sample dashboard with made-up guests (stored only in your browser), and a Contact us form. Contact messages are stored in the database and read in the super-admin dashboard (migration 21); the table itself is never exposed, submission goes through the locked `submit_contact` function with abuse limits.
 
 ## Architecture
 

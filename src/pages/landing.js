@@ -1,3 +1,4 @@
+import { request } from '../lib/http.js';
 (()=>{
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -124,6 +125,28 @@ function setOcc(o){occ=o;$$('.chip').forEach(c=>c.classList.toggle('on',c.textCo
   guestForm($('#demoGuest'),ev,st,{demo:1,sub:ev.sub,onSent:()=>{bd.draw();$('#demoBoard').scrollIntoView({behavior:'smooth',block:'nearest'})}});
   bd=board($('#demoBoard'),ev,st,{reset:()=>{st.clear();setOcc(o)}})}
 setOcc('Wedding');
+
+
+// ---------- contact form: sends to the owner inbox (submit_contact rpc)
+const cForm=$('#contactForm');
+if(cForm){
+  const cSt=$('#contactStatus'),cBtn=cForm.querySelector('button[type=submit]');
+  const say=(t,warn)=>{cSt.hidden=false;cSt.className=warn?'banner warn':'banner';cSt.textContent=t};
+  cForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const name=cForm.cname.value.trim(),email=cForm.cemail.value.trim(),msg=cForm.cmsg.value.trim();
+    if(!name||!email||!msg){say('Please fill every field so we can reply.',1);return}
+    if(!/^\S+@\S+\.\S+$/.test(email)){say('That email does not look right - we need it to reply.',1);return}
+    cBtn.disabled=true;cBtn.textContent='Sending...';cSt.hidden=true;
+    try{
+      await request('/rest/v1/rpc/submit_contact',{method:'POST',body:{p_name:name,p_email:email,p_message:msg}});
+      cForm.reset();say(`Thank you, ${name.split(' ')[0]}. Your message is with us - we answer every one.`);
+    }catch(err){
+      say(err&&err.message&&err.message.length<200?err.message:'Could not send right now. Please try again in a minute.',1);
+    }
+    cBtn.disabled=false;cBtn.textContent='Send message';
+  });
+}
 
 // ---------- scroll choreography: Nightfall-style act sequence (desktop fx), simple reveals elsewhere
 const fx=!reduce;

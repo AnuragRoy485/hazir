@@ -19,7 +19,7 @@ function nav(name) {
 const shell = html => { root.innerHTML = `<section class="evpage">${html}</section>`; };
 const ts = v => v ? new Date(v).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
 
-const LABELS = { admin_overview: 'Viewed the overview', admin_update_user: 'Edited a host', admin_delete_user: 'Deleted a host', admin_update_event: 'Edited an event', admin_delete_event: 'Deleted an event', admin_view_event: 'Viewed RSVP details', admin_delete_users: 'Deleted hosts in bulk', admin_delete_events: 'Deleted events in bulk', admin_update_response: 'Edited a guest answer', admin_delete_response: 'Deleted a guest answer', admin_add_invitee: 'Added a guest', admin_delete_invitee: 'Removed a guest', admin_add_response: 'Recorded a guest answer', admin_create_event: 'Created an event', admin_request_password_reset: 'Sent a password-reset email', admin_set_password: 'Set a new password' };
+const LABELS = { admin_overview: 'Viewed the overview', admin_update_user: 'Edited a host', admin_delete_user: 'Deleted a host', admin_update_event: 'Edited an event', admin_delete_event: 'Deleted an event', admin_view_event: 'Viewed RSVP details', admin_delete_users: 'Deleted hosts in bulk', admin_delete_events: 'Deleted events in bulk', admin_update_response: 'Edited a guest answer', admin_delete_response: 'Deleted a guest answer', admin_add_invitee: 'Added a guest', admin_delete_invitee: 'Removed a guest', admin_add_response: 'Recorded a guest answer', admin_create_event: 'Created an event', admin_request_password_reset: 'Sent a password-reset email', admin_set_password: 'Set a new password', admin_view_contact: 'Viewed contact messages', admin_delete_contact: 'Deleted a contact message' };
 function describe(l) {
   const d = l.detail || {};
   switch (l.action) {
@@ -72,13 +72,14 @@ async function boot() {
 
 async function paint() {
   shell('<div class="skel"></div>');
-  let ov, audit;
+  let ov, audit, msgs = null;
   try {
     [ov, audit] = await Promise.all([rpc('admin_overview'), rpc('admin_audit')]);
   } catch (e) {
     shell(`<h2>Admin</h2><p class="muted">Could not load the admin overview: ${esc(e.message || 'unknown error')}</p>`);
     return;
   }
+  try { msgs = await rpc('admin_contact_messages'); } catch { msgs = null; }
   const t = ov.totals || {};
   const users = ov.users || [];
   const hosts = users.filter(u => !u.is_test), tests = users.filter(u => u.is_test);
@@ -109,6 +110,13 @@ async function paint() {
       <div class="tblwrap"><table class="tbl cardsm"><thead><tr><th><input type="checkbox" id="sae" aria-label="Select all events"></th><th>Event</th><th>Host</th><th>Date</th><th>Guests</th><th>Answers</th><th>Coming</th><th>Banner</th><th></th></tr></thead>
       <tbody id="tbe">${(ov.events || []).map(e => `<tr data-d="${e.event_date}"><td class="nolabel"><input type="checkbox" data-se="${e.id}" data-m="${esc(e.title)}"></td><td data-l="Event">${esc(e.title)}</td><td data-l="Host">${esc(e.host_email || e.host_name || '')}</td><td data-l="Date">${fmtDate(e.event_date)}</td><td data-l="Guests">${e.guests}</td><td data-l="Answers">${e.answers}</td><td data-l="Coming">${e.coming}</td><td data-l="Banner">${e.has_banner ? 'Yes' : '-'}</td>
         <td class="row"><button class="mini" data-ve="${e.id}">View</button><button class="mini" data-ee="${e.id}">Edit</button><button class="mini" data-de="${e.id}" data-t="${esc(e.title)}">Delete</button></td></tr>`).join('')}</tbody></table></div></div>
+    <div class="card reveal in"><h4>Contact messages</h4>
+      <p class="muted">Sent through the Contact us form on the homepage, newest first.</p>
+      ${msgs === null ? '<p class="muted">Could not load messages - the latest database update (migration 21) may not be applied yet.</p>' :
+      `<div class="tblwrap"><table class="tbl cardsm"><thead><tr><th>When</th><th>From</th><th>Message</th><th></th></tr></thead>
+      <tbody>${(msgs || []).map(m => `<tr><td data-l="When">${ts(m.created_at)}</td><td data-l="From"><b>${esc(m.name || '')}</b><br><a class="muted" href="mailto:${esc(m.email || '')}">${esc(m.email || '')}</a></td><td data-l="Message" class="msgcell">${esc(m.message || '')}</td>
+        <td class="nolabel"><button class="mini danger" data-dm="${m.id}">Delete</button></td></tr>`).join('') || '<tr><td colspan="4" class="muted">No messages yet.</td></tr>'}</tbody></table></div>`}
+    </div>
     <div class="card reveal in"><h4>Admin activity</h4>
       <p class="muted">Every admin lookup and change is recorded here automatically.</p>
       <div class="row toolbar"><input class="srch" id="sa" placeholder="Search activity" autocomplete="off"><select class="srch sel" id="fa"><option value="all">All actions</option><option value="view">Views</option><option value="edit">Edits</option><option value="del">Deletions</option></select></div>
@@ -184,6 +192,12 @@ function wire(ov) {
       again('Event created');
     } catch (e) { toast(e.message || 'Create failed', 1); }
   };
+  $$('[data-dm]').forEach(b => b.onclick = async () => {
+    const okd = await confirmBox({ title: 'Delete this message?', body: 'The message will be removed permanently. This cannot be undone.', ok: 'Delete message', danger: true });
+    if (!okd) return;
+    try { await rpc('admin_delete_contact_message', { p_id: b.dataset.dm }); again('Message deleted'); }
+    catch (e) { toast(e.message || 'Delete failed', 1); }
+  });
   wireEventViews();
   $$('[data-ee]').forEach(b => b.onclick = () => editEventFull(ov, b.dataset.ee, again));
   wireFilters();
