@@ -276,3 +276,10 @@ html.fx .wipe.in .wipe-i{clip-path:inset(-12% -3% -12% 0)}
   html.fx .occ-lead{flex:0 0 auto;width:clamp(300px,30vw,460px);padding:40px 36px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;justify-content:center}
   html.fx .occ-rail .tile{flex:0 0 auto;width:clamp(280px,24vw,360px);min-height:260px}
 }
+
+/* Contact us (landing) */
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;margin-top:8px}
+.contact .cform{margin-top:0}
+.contact .field textarea{font-size:17px}
+.contact .banner{margin:14px 0 0}
+@media(max-width:900px){.contact-grid{grid-template-columns:1fr}}

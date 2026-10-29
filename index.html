@@ -34,6 +34,7 @@
     <a href="#demo">Sample</a>
     <a href="#occasions">Occasions</a>
     <a href="#host">For hosts</a>
+    <a href="#contact">Contact</a>
   </nav>
   <span class="navr"><a href="app.html" class="link2 login">Log in</a><a href="app.html#signup" class="btn btn-sm magnetic">Start free</a></span>
 </header>
@@ -163,12 +164,29 @@
   <p class="lead reveal">Create a free host account, share one link, and watch the answers arrive.</p>
   <div class="cta reveal"><a href="app.html#signup" class="btn magnetic">Create your first event</a><a href="app.html" class="btn btn-ghost magnetic">Log in</a></div>
 </section>
+<section class="contact section" id="contact">
+  <p class="eyebrow reveal">Contact us</p>
+  <h2 class="kl">Say <em>hello.</em></h2>
+  <div class="contact-grid">
+    <div>
+      <p class="lead reveal">A question about hosting, an idea that would make Hazir better, or something that is not working? Write here - it comes straight to me, the person building Hazir.</p>
+      <p class="fine reveal" style="--d:.1s">No account needed.</p>
+    </div>
+    <form class="card cform reveal" id="contactForm" style="--d:.15s" novalidate>
+      <label class="field">Your name<input name="cname" maxlength="60" placeholder="Your name" autocomplete="name"></label>
+      <label class="field">Your email<input name="cemail" type="email" maxlength="120" placeholder="you@example.com" autocomplete="email"></label>
+      <label class="field">Message<textarea name="cmsg" rows="4" maxlength="1000" placeholder="How can we help?"></textarea></label>
+      <button class="btn full" type="submit">Send message</button>
+      <p class="banner" id="contactStatus" hidden></p>
+    </form>
+  </div>
+</section>
 </main>
 
 <footer class="foot">
   <div class="logo">Hazir<span>.</span></div>
   <p>Know who is coming.</p>
-  <nav class="footlinks"><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></nav>
+  <nav class="footlinks"><a href="#contact">Contact us</a><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></nav>
   <p class="credit">Built with love in Calcutta &middot; By <a href="https://anuragroy.tech" target="_blank" rel="noopener">Anurag Roy</a></p>
 </footer>
 
