@@ -40,7 +40,7 @@
 
 <main id="top">
 <section class="hero">
-  <div class="hero-text">
+  <div class="hero-text" data-plx="0.10">
     <p class="eyebrow reveal">Guest RSVPs, finally honest</p>
     <h1 class="split" data-split>Know who<br>is <em>coming.</em></h1>
     <p class="lead reveal" style="--d:.5s">Guests say yes or no, pick when they will arrive, and you watch the headcount move live. For weddings, birthdays, pujas, dinners, launches and every gathering in between.</p>
@@ -51,6 +51,7 @@
     <p class="fine reveal" style="--d:.8s">Hazir (हाज़िर) means present, here, accounted for.</p>
   </div>
   <div class="hero-visual reveal" style="--d:.4s">
+    <div class="plx-wrap" data-plx="0.22">
     <div class="phone tilt" id="heroPhone">
       <div class="notch"></div>
       <p class="tiny">DASHBOARD</p>
@@ -61,6 +62,7 @@
         <div><small>WAITING</small><b id="heroPending">400</b></div>
       </div>
       <div class="dots" id="heroDots"></div>
+    </div>
     </div>
   </div>
 </section>
@@ -73,8 +75,12 @@
 </section>
 
 <section class="problem section">
-  <p class="eyebrow reveal">The problem</p>
-  <h2 class="reveal">Four hundred invited.<br>Everyone says <em>yes.</em><br>Nobody tells you the time.</h2>
+  <div class="pinhead">
+    <div class="pinhead-stage">
+      <p class="eyebrow">The problem</p>
+      <h2 class="kl">Four hundred invited.<br>Everyone says <em>yes.</em><br>Nobody tells you the time.</h2>
+    </div>
+  </div>
   <div class="cols">
     <p class="reveal">Hosts order food for a number they are guessing. Guests say "will try" and turn up two hours late, or not at all. The kitchen, the venue and the budget all pay for it.</p>
     <p class="reveal" style="--d:.15s">Hazir replaces the guess with three plain answers from every guest: am I coming, how many of us, and when will we arrive. You see the real number as it forms.</p>
@@ -90,7 +96,7 @@
 
 <section class="why section" id="why">
   <p class="eyebrow reveal">Why Hazir exists</p>
-  <h2 class="reveal">Every Indian gathering runs on one unanswered question.</h2>
+  <h2 class="kl">Every Indian gathering runs on one unanswered question.</h2>
   <div class="story">
     <p class="reveal">We use an app for rides, an app for food, an app for money. Yet when we invite people to the most important days of our lives, we still ask on WhatsApp, count replies by scrolling, and hope.</p>
     <p class="reveal">"Will try." "Maybe." A thumbs-up that means nothing. Then the real number arrives at the gate: forty fewer, or sixty more, and half of them two hours late. Food is wasted or runs out. Tables are wrong. A host who should be enjoying the day is on the phone.</p>
@@ -107,7 +113,7 @@
 
 <section class="how section" id="how">
   <p class="eyebrow reveal">How it works</p>
-  <h2 class="reveal">Four steps. No spreadsheet.</h2>
+  <h2 class="kl">Four steps. No spreadsheet.</h2>
   <ol class="steps">
     <li class="step reveal"><span class="n">01</span><h3>Create the event</h3><p>Name it, set the date and the number you invited. Choose the occasion and get one link.</p></li>
     <li class="step reveal" style="--d:.08s"><span class="n">02</span><h3>Share one link</h3><p>Send it on WhatsApp, print it as a code, drop it in a group. Guests need no account.</p></li>
@@ -118,7 +124,7 @@
 
 <section class="demo section" id="demo">
   <p class="eyebrow reveal">Try a sample</p>
-  <h2 class="reveal">Be the guest. Watch the host.</h2>
+  <h2 class="kl">Be the guest. Watch the host.</h2>
   <p class="lead reveal">This is a sample with made-up guests, so you can feel it without signing up. Real events live in your host account.</p>
   <div class="chips reveal" id="occChips" role="tablist" aria-label="Occasion"></div>
   <div class="demo-grid"><div id="demoGuest"></div><div id="demoBoard"></div></div>
@@ -126,7 +132,7 @@
 
 <section class="occ section" id="occasions">
   <p class="eyebrow reveal">Every occasion</p>
-  <h2 class="reveal">Not just weddings.</h2>
+  <h2 class="kl">Not just weddings.</h2>
   <div class="grid">
     <article class="tile reveal"><h3>Weddings</h3><p>Sangeet, haldi, reception. Count each function on its own.</p></article>
     <article class="tile reveal" style="--d:.06s"><h3>Birthdays</h3><p>From a first birthday to a surprise at sixty.</p></article>
@@ -139,7 +145,7 @@
 
 <section class="host section" id="host">
   <p class="eyebrow reveal">For hosts</p>
-  <h2 class="reveal">Plan from the real number.</h2>
+  <h2 class="kl">Plan from the real number.</h2>
   <div class="features">
     <div class="feat reveal"><h3>Live headcount</h3><p>Confirmed, declined and waiting, updated the moment a guest answers.</p></div>
     <div class="feat reveal" style="--d:.08s"><h3>Arrival clock</h3><p>See when people land, hour by hour, so the kitchen and the doors are ready.</p></div>
@@ -153,7 +159,7 @@
 </section>
 
 <section class="cta-end section">
-  <h2 class="reveal">Your next gathering, <em>counted.</em></h2>
+  <h2 class="kl">Your next gathering, <em>counted.</em></h2>
   <p class="lead reveal">Create a free host account, share one link, and watch the answers arrive.</p>
   <div class="cta reveal"><a href="app.html#signup" class="btn magnetic">Create your first event</a><a href="app.html" class="btn btn-ghost magnetic">Log in</a></div>
 </section>
@@ -167,5 +173,6 @@
 </footer>
 
 <script type="module" src="src/pages/landing.js"></script>
+<script src="/assets/js/brand.js" defer></script>
 </body>
 </html>

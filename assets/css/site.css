@@ -219,3 +219,60 @@ textarea{font-family:Georgia,serif}
 /* Sitewide: invisible scrollbars, scrolling unchanged (wheel, touch, keyboard). */
 * { scrollbar-width: none; -ms-overflow-style: none; }
 *::-webkit-scrollbar { display: none; }
+
+/* ---------------------------------------------------------------------------
+   Brand language rotation (all pages). The wordmark and footer tagline cycle
+   English -> Hindi -> Bengali. Masked vertical swap, GPU-composited only.
+   -------------------------------------------------------------------------- */
+.rt{display:inline-grid;vertical-align:baseline;overflow:hidden;line-height:1.3;padding:.08em .05em;margin:-.08em -.05em}
+.rt>*{grid-area:1/1;white-space:nowrap;opacity:0;transform:translateY(112%);transition:transform .72s var(--ease),opacity .72s var(--ease);will-change:transform}
+.rt>.rt-in{opacity:1;transform:none}
+.rt>.rt-out{opacity:0;transform:translateY(-112%)}
+.rt>.rt-rs{transition:none}
+.rt-nl{font-style:normal;font-family:Georgia,"Noto Serif Devanagari","Noto Serif Bengali",serif;letter-spacing:0}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---------------------------------------------------------------------------
+   Landing scroll choreography (index only, built on the scrollcraft moves the
+   user picked from the nightfall demo: kinetic masked lines, one pinned act,
+   layered hero parallax). Hidden states exist only under
+   html.fx, so no-JS and reduced-motion readers always see the full content.
+   -------------------------------------------------------------------------- */
+.kl-l{display:block}
+html.fx .kl-l{overflow:hidden;padding:.08em .12em .14em;margin:-.08em -.12em -.14em}
+html.fx .kl-i{display:block;transform:translateY(114%);transition:transform 1s var(--ease);transition-delay:calc(var(--i)*.13s + .06s)}
+html.fx .in .kl-i{transform:none}
+html.fx .kl-pin .kl-i{transition:none}
+html.fx .pinhead .eyebrow{opacity:0;transition:none}
+
+/* Pinned act: the problem headline holds while its three lines assemble. */
+@media (min-width:900px){
+  html.fx .pinhead{height:260vh}
+  html.fx .pinhead-stage{position:sticky;top:0;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+}
+/* Section drift: the page ground breathes between warm paper and white. */
+@media (prefers-reduced-motion:reduce){
+  html.fx .kl-i{transform:none}
+  .rt>*{transition:none}
+}
+
+/* ---------- Nightfall-style act sequence (fx + desktop): hero hold, drawn path, sideways rail, closing hold ---------- */
+html.fx .wipe .wipe-i{display:block;clip-path:inset(-12% 103% -12% 0);transition:clip-path 1.15s var(--ease) .05s}
+html.fx .wipe.in .wipe-i{clip-path:inset(-12% -3% -12% 0)}
+@media (min-width:900px){
+  html.fx .act-pin{position:relative}
+  html.fx .act-stage{position:sticky;top:0;min-height:100vh;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+  html.fx .act-stage>section{width:100%}
+  html.fx #act-hero{height:235vh}
+  html.fx #act-how{height:300vh}
+  html.fx #act-occ{height:330vh}
+  html.fx #act-cta{height:175vh}
+  html.fx .how-draw{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+  html.fx .how-line{fill:none;stroke:#000;stroke-width:1.5;stroke-dasharray:1;stroke-dashoffset:1}
+  html.fx .how-node{fill:#fff;stroke:#000;stroke-width:1.5;opacity:0}
+  html.fx #act-how .how{position:relative;z-index:1}
+  html.fx #act-how .step .n{background:var(--bg);display:inline-block;padding:0 8px 0 0;position:relative;z-index:1}
+  html.fx .occ-rail{display:flex;align-items:stretch;width:max-content;margin-top:30px;border-top:1px solid #000;border-left:1px solid var(--line);will-change:transform}
+  html.fx .occ-lead{flex:0 0 auto;width:clamp(300px,30vw,460px);padding:40px 36px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;justify-content:center}
+  html.fx .occ-rail .tile{flex:0 0 auto;width:clamp(280px,24vw,360px);min-height:260px}
+}

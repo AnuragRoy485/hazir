@@ -124,4 +124,131 @@ function setOcc(o){occ=o;$$('.chip').forEach(c=>c.classList.toggle('on',c.textCo
   guestForm($('#demoGuest'),ev,st,{demo:1,sub:ev.sub,onSent:()=>{bd.draw();$('#demoBoard').scrollIntoView({behavior:'smooth',block:'nearest'})}});
   bd=board($('#demoBoard'),ev,st,{reset:()=>{st.clear();setOcc(o)}})}
 setOcc('Wedding');
+
+// ---------- scroll choreography: Nightfall-style act sequence (desktop fx), simple reveals elsewhere
+const fx=!reduce;
+if(fx)document.documentElement.classList.add('fx');
+const pinOK=fx&&matchMedia('(min-width:900px)').matches;
+const clamp01=v=>v<0?0:v>1?1:v,seg=(p,a,b)=>clamp01((p-a)/b),smooth=x=>{x=clamp01(x);return x*x*(3-2*x)};
+// Act 3 (anticipation): the why headline wipes in from the right, like the reference's turn act.
+const whyH2=$('.why h2.kl');
+if(whyH2&&fx){whyH2.classList.remove('kl');whyH2.classList.add('wipe');
+  const wi=document.createElement('span');wi.className='wipe-i';while(whyH2.firstChild)wi.append(whyH2.firstChild);whyH2.append(wi)}
+// Kinetic masked-line headlines: each <br>-separated line rises out of its mask.
+$$('.kl').forEach(h=>{
+  const lines=[[]];
+  [...h.childNodes].forEach(n=>{if(n.nodeName==='BR')lines.push([]);else lines[lines.length-1].push(n)});
+  h.textContent='';let li=0;
+  lines.forEach(ns=>{if(!ns.length)return;const l=document.createElement('span');l.className='kl-l';const inner=document.createElement('span');inner.className='kl-i';inner.style.setProperty('--i',li++);ns.forEach(n=>inner.append(n));l.append(inner);h.append(l)});
+});
+const klIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');klIO.unobserve(e.target)}}),{threshold:.3});
+// Act 2 (recognition): the problem headline holds the frame while its lines assemble.
+const pinWrap=$('.pinhead'),pinH2=pinWrap&&pinWrap.querySelector('.kl');
+let pinLines=[],pinBrow=null;
+if(pinWrap&&pinH2&&pinOK){pinH2.classList.add('kl-pin');pinLines=[...pinH2.querySelectorAll('.kl-i')];pinBrow=pinWrap.querySelector('.eyebrow')}
+// Acts 1/4/5/6 (desktop fx): hero hold with drifting layers, drawn how-it-works path, sideways occasions rail, closing hold.
+let heroAct=null,howAct=null,occAct=null,ctaAct=null;
+let occRail=null,occTiles=[],howPath=null,howNodes=[],howSteps=[],ctaLines=[],ctaLead=null,ctaBtns=null,heroPlx=null;
+const heroText=$('.hero-text');
+const wrapAct=(sec,id)=>{const w=document.createElement('div');w.className='act-pin';w.id=id;const st=document.createElement('div');st.className='act-stage';sec.parentNode.insertBefore(w,sec);st.append(sec);w.append(st);return{w,st,sec}};
+const NS='http://www.w3.org/2000/svg';
+function measureHow(){
+  if(!howAct||!howPath)return;
+  const sb=howAct.st.getBoundingClientRect();
+  const pts=howSteps.map(s=>{const n=s.querySelector('.n');if(!n)return null;const r=n.getBoundingClientRect();return{x:r.left-sb.left+Math.min(18,r.width/2),y:r.top-sb.top+r.height/2}}).filter(Boolean);
+  if(pts.length<2)return;
+  howPath.setAttribute('d','M '+pts.map(p=>p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' L '));
+  howNodes.forEach((c,i)=>{if(pts[i]){c.setAttribute('cx',pts[i].x.toFixed(1));c.setAttribute('cy',pts[i].y.toFixed(1))}});
+}
+if(pinOK){
+  heroAct=wrapAct($('.hero'),'act-hero');
+  heroPlx=heroAct.sec.querySelector('.plx-wrap');
+  howAct=wrapAct($('.how'),'act-how');
+  const svg=document.createElementNS(NS,'svg');svg.setAttribute('class','how-draw');svg.setAttribute('aria-hidden','true');
+  howPath=document.createElementNS(NS,'path');howPath.setAttribute('pathLength','1');howPath.setAttribute('class','how-line');svg.append(howPath);
+  howSteps=[...howAct.sec.querySelectorAll('.step')];
+  howNodes=howSteps.map(()=>{const c=document.createElementNS(NS,'circle');c.setAttribute('r','5');c.setAttribute('class','how-node');svg.append(c);return c});
+  howAct.st.append(svg);
+  howSteps.forEach(s=>s.classList.remove('reveal'));
+  occAct=wrapAct($('.occ'),'act-occ');
+  const grid=occAct.sec.querySelector('.grid');
+  occRail=document.createElement('div');occRail.className='occ-rail';
+  const lead=document.createElement('div');lead.className='occ-lead';
+  lead.append(occAct.sec.querySelector('.eyebrow'),occAct.sec.querySelector('h2'));
+  occRail.append(lead);
+  occTiles=[...grid.children];
+  occTiles.forEach(t=>{t.classList.remove('reveal');occRail.append(t)});
+  grid.replaceWith(occRail);
+  ctaAct=wrapAct($('.cta-end'),'act-cta');
+  const ctaH2=ctaAct.sec.querySelector('.kl');
+  if(ctaH2){ctaH2.classList.add('kl-pin');ctaLines=[...ctaH2.querySelectorAll('.kl-i')]}
+  ctaLead=ctaAct.sec.querySelector('.lead');ctaBtns=ctaAct.sec.querySelector('.cta');
+  [ctaLead,ctaBtns].forEach(el=>el&&el.classList.remove('reveal'));
+  requestAnimationFrame(()=>{measureHow();fxFrame()});
+  addEventListener('load',()=>{measureHow();fxFrame()});
+  addEventListener('resize',()=>{measureHow();fxFrame()});
+}
+$$('.kl').forEach(h=>{if(pinOK&&(h===pinH2||(ctaAct&&ctaAct.w.contains(h))))return;klIO.observe(h)});
+$$('.wipe').forEach(h=>klIO.observe(h));
+// Anchor links into pinned acts land where the act already has content on screen.
+if(pinOK)$$('a[href^="#"]').forEach(a=>{a.addEventListener('click',e=>{
+  const id=a.getAttribute('href').slice(1),t=id&&document.getElementById(id);
+  if(!t)return;const w=t.closest('.act-pin');if(!w)return;
+  e.preventDefault();
+  const p={'act-how':.45,'act-occ':.3}[w.id]??.3;
+  window.scrollTo({top:w.getBoundingClientRect().top+scrollY+(w.offsetHeight-innerHeight)*p,behavior:'smooth'});
+  history.replaceState(null,'','#'+id);
+})});
+// Layered parallax on elements outside the pinned hero, scrubbed to scroll.
+const plxEls=$$('[data-plx]').filter(el=>!(heroAct&&heroAct.w.contains(el))).map(el=>({el,r:parseFloat(el.dataset.plx)||0}));
+const actP=a=>{const b=a.w.getBoundingClientRect();return clamp01(-b.top/(b.height-innerHeight))};
+let fxTick=false;
+function fxFrame(){
+  fxTick=false;
+  const vh=innerHeight;
+  if(plxEls.length){
+    const vc=vh/2,rects=plxEls.map(o=>o.el.getBoundingClientRect());
+    rects.forEach((b,i)=>{if(b.bottom<-200||b.top>vh+200)return;plxEls[i].el.style.transform=`translate3d(0,${((b.top+b.height/2-vc)*plxEls[i].r).toFixed(1)}px,0)`});
+  }
+  if(heroText&&!heroAct)heroText.style.opacity=String(1-clamp01(scrollY/(vh*.8))*.9);
+  if(heroAct){
+    const p=actP(heroAct);
+    heroText.style.transform=`translate3d(0,${(-p*48).toFixed(1)}px,0)`;
+    heroText.style.opacity=(1-seg(p,.52,.4)*.96).toFixed(2);
+    if(heroPlx)heroPlx.style.transform=`translate3d(0,${(-p*120).toFixed(1)}px,0)`;
+  }
+  if(pinLines.length&&pinWrap){
+    const b=pinWrap.getBoundingClientRect();
+    if(b.bottom>0&&b.top<vh){
+      const p=clamp01(-b.top/(b.height-vh));
+      pinLines.forEach((inner,i)=>{
+        const start=.02+i*.28;
+        const rise=seg(p,start,.16);
+        const dim=i<pinLines.length-1?1-seg(p,start+.3,.14)*.62:1;
+        inner.style.transform=`translate3d(0,${((1-rise)*114).toFixed(1)}%,0)`;
+        inner.style.opacity=dim.toFixed(2);
+      });
+      if(pinBrow)pinBrow.style.opacity=seg(p,0,.05).toFixed(2);
+    }
+  }
+  if(howAct&&howPath){
+    const p=actP(howAct);
+    howPath.style.strokeDashoffset=(1-seg(p,.06,.74)).toFixed(3);
+    howNodes.forEach((c,i)=>{c.style.opacity=seg(p,.1+i*.185,.05).toFixed(2)});
+    howSteps.forEach((s,i)=>{const r=seg(p,.05+i*.19,.13);s.style.opacity=r.toFixed(2);s.style.transform=`translate3d(0,${((1-r)*26).toFixed(1)}px,0)`});
+  }
+  if(occAct&&occRail){
+    const p=actP(occAct);
+    const travel=Math.max(0,occRail.scrollWidth-occAct.st.clientWidth+60);
+    occRail.style.transform=`translate3d(${(-travel*smooth(p)).toFixed(1)}px,0,0)`;
+    occTiles.forEach((t,i)=>{const s=seg(p,.04+i*.11,.15);t.style.opacity=(.5+.5*s).toFixed(2);t.style.transform=`translate3d(0,${((1-s)*18).toFixed(1)}px,0)`});
+  }
+  if(ctaAct){
+    const p=actP(ctaAct);
+    ctaLines.forEach((inner,i)=>{const rise=seg(p,.02+i*.2,.15);inner.style.transform=`translate3d(0,${((1-rise)*114).toFixed(1)}%,0)`});
+    if(ctaLead){const r=seg(p,.34,.16);ctaLead.style.opacity=r.toFixed(2);ctaLead.style.transform=`translate3d(0,${((1-r)*20).toFixed(1)}px,0)`}
+    if(ctaBtns){const r=seg(p,.52,.16);ctaBtns.style.opacity=r.toFixed(2);ctaBtns.style.transform=`translate3d(0,${((1-r)*20).toFixed(1)}px,0)`}
+  }
+}
+if(fx){addEventListener('scroll',()=>{if(!fxTick){fxTick=true;requestAnimationFrame(fxFrame)}},{passive:true});fxFrame()}
 })();
