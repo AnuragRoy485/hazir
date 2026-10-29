@@ -23,7 +23,7 @@ async function renderNav() {
 }
 R.boot = async function boot() {
   const user = auth.user() || await auth.loadUser();
-  if (!user) return R.authView('login');
+  if (!user) return R.authView(location.hash === '#signup' ? 'signup' : 'login');
   renderNav();
   R.listView();
 };
