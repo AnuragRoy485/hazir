@@ -124,4 +124,55 @@ function setOcc(o){occ=o;$$('.chip').forEach(c=>c.classList.toggle('on',c.textCo
   guestForm($('#demoGuest'),ev,st,{demo:1,sub:ev.sub,onSent:()=>{bd.draw();$('#demoBoard').scrollIntoView({behavior:'smooth',block:'nearest'})}});
   bd=board($('#demoBoard'),ev,st,{reset:()=>{st.clear();setOcc(o)}})}
 setOcc('Wedding');
+
+// ---------- scrollcraft moves: kinetic lines, one pinned act, hero parallax, drift
+const fx=!reduce;
+if(fx)document.documentElement.classList.add('fx');
+// Kinetic masked-line headlines: each <br>-separated line rises out of its mask.
+$$('.kl').forEach(h=>{
+  const lines=[[]];
+  [...h.childNodes].forEach(n=>{if(n.nodeName==='BR')lines.push([]);else lines[lines.length-1].push(n)});
+  h.textContent='';let li=0;
+  lines.forEach(ns=>{if(!ns.length)return;const l=document.createElement('span');l.className='kl-l';const inner=document.createElement('span');inner.className='kl-i';inner.style.setProperty('--i',li++);ns.forEach(n=>inner.append(n));l.append(inner);h.append(l)});
+});
+const klIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');klIO.unobserve(e.target)}}),{threshold:.3});
+// The pinned act: the problem headline holds the frame while its lines assemble.
+const pinWrap=$('.pinhead'),pinH2=pinWrap&&pinWrap.querySelector('.kl');
+const pinOK=fx&&matchMedia('(min-width:900px)').matches;
+let pinLines=[],pinBrow=null;
+if(pinWrap&&pinH2&&pinOK){pinH2.classList.add('kl-pin');pinLines=[...pinH2.querySelectorAll('.kl-i')];pinBrow=pinWrap.querySelector('.eyebrow')}
+$$('.kl').forEach(h=>{if(!(pinOK&&h===pinH2))klIO.observe(h)});
+// Layered hero parallax + gentle hero fade, scrubbed to scroll.
+const plxEls=$$('[data-plx]').map(el=>({el,r:parseFloat(el.dataset.plx)||0}));
+const heroText=$('.hero-text');
+// Section drift: the ground colour follows the section in the middle of the viewport.
+if(fx){
+  const driftIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)document.body.style.backgroundColor=e.target.dataset.drift||'#fff'}),{rootMargin:'-48% 0px -48% 0px'});
+  $$('[data-drift]').forEach(el=>driftIO.observe(el));
+}
+const clamp01=v=>v<0?0:v>1?1:v,seg=(p,a,b)=>clamp01((p-a)/b);
+let fxTick=false;
+function fxFrame(){
+  fxTick=false;
+  const vh=innerHeight;
+  if(plxEls.length){
+    const vc=vh/2,rects=plxEls.map(o=>o.el.getBoundingClientRect());
+    rects.forEach((b,i)=>{if(b.bottom<-200||b.top>vh+200)return;plxEls[i].el.style.transform=`translate3d(0,${((b.top+b.height/2-vc)*plxEls[i].r).toFixed(1)}px,0)`});
+  }
+  if(heroText)heroText.style.opacity=String(1-clamp01(scrollY/(vh*.8))*.9);
+  if(pinLines.length&&pinWrap){
+    const b=pinWrap.getBoundingClientRect();
+    if(b.bottom>0&&b.top<vh){
+      const p=clamp01(-b.top/(b.height-vh));
+      pinLines.forEach((inner,i)=>{
+        const rise=seg(p,.06+i*.27,.14);
+        const dim=i<pinLines.length-1?1-seg(p,.06+i*.27+.24,.12)*.62:1;
+        inner.style.transform=`translate3d(0,${((1-rise)*114).toFixed(1)}%,0)`;
+        inner.style.opacity=dim.toFixed(2);
+      });
+      if(pinBrow)pinBrow.style.opacity=seg(p,0,.05).toFixed(2);
+    }
+  }
+}
+if(fx){addEventListener('scroll',()=>{if(!fxTick){fxTick=true;requestAnimationFrame(fxFrame)}},{passive:true});fxFrame()}
 })();
