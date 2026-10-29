@@ -257,8 +257,8 @@ html.fx .pinhead .eyebrow{opacity:0;transition:none}
 }
 
 /* ---------- Nightfall-style act sequence (fx + desktop): hero hold, drawn path, sideways rail, closing hold ---------- */
-html.fx .wipe{clip-path:inset(-12% 103% -12% 0);transition:clip-path 1.15s var(--ease) .05s}
-html.fx .wipe.in{clip-path:inset(-12% -3% -12% 0)}
+html.fx .wipe .wipe-i{display:block;clip-path:inset(-12% 103% -12% 0);transition:clip-path 1.15s var(--ease) .05s}
+html.fx .wipe.in .wipe-i{clip-path:inset(-12% -3% -12% 0)}
 @media (min-width:900px){
   html.fx .act-pin{position:relative}
   html.fx .act-stage{position:sticky;top:0;min-height:100vh;display:flex;flex-direction:column;justify-content:center;overflow:hidden}

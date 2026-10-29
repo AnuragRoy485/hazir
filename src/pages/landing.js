@@ -132,7 +132,8 @@ const pinOK=fx&&matchMedia('(min-width:900px)').matches;
 const clamp01=v=>v<0?0:v>1?1:v,seg=(p,a,b)=>clamp01((p-a)/b),smooth=x=>{x=clamp01(x);return x*x*(3-2*x)};
 // Act 3 (anticipation): the why headline wipes in from the right, like the reference's turn act.
 const whyH2=$('.why h2.kl');
-if(whyH2&&fx){whyH2.classList.remove('kl');whyH2.classList.add('wipe')}
+if(whyH2&&fx){whyH2.classList.remove('kl');whyH2.classList.add('wipe');
+  const wi=document.createElement('span');wi.className='wipe-i';while(whyH2.firstChild)wi.append(whyH2.firstChild);whyH2.append(wi)}
 // Kinetic masked-line headlines: each <br>-separated line rises out of its mask.
 $$('.kl').forEach(h=>{
   const lines=[[]];
