@@ -145,11 +145,6 @@ $$('.kl').forEach(h=>{if(!(pinOK&&h===pinH2))klIO.observe(h)});
 // Layered hero parallax + gentle hero fade, scrubbed to scroll.
 const plxEls=$$('[data-plx]').map(el=>({el,r:parseFloat(el.dataset.plx)||0}));
 const heroText=$('.hero-text');
-// Section drift: the ground colour follows the section in the middle of the viewport.
-if(fx){
-  const driftIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)document.body.style.backgroundColor=e.target.dataset.drift||'#fff'}),{rootMargin:'-48% 0px -48% 0px'});
-  $$('[data-drift]').forEach(el=>driftIO.observe(el));
-}
 const clamp01=v=>v<0?0:v>1?1:v,seg=(p,a,b)=>clamp01((p-a)/b);
 let fxTick=false;
 function fxFrame(){
