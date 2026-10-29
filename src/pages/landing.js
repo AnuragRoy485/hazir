@@ -142,7 +142,9 @@ if(cForm){
       await request('/rest/v1/rpc/submit_contact',{method:'POST',body:{p_name:name,p_email:email,p_message:msg}});
       cForm.reset();say(`Thank you, ${name.split(' ')[0]}. Your message is with us - we answer every one.`);
     }catch(err){
-      say(err&&err.message&&err.message.length<200?err.message:'Could not send right now. Please try again in a minute.',1);
+      const m=err&&err.message||'';
+      say(/Could not find the function/.test(m)?'Messages are not being received just yet - the owner is finishing the setup.':
+        m&&m.length<200?m:'Could not send right now. Please try again in a minute.',1);
     }
     cBtn.disabled=false;cBtn.textContent='Send message';
   });
