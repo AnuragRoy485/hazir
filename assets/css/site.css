@@ -6,7 +6,7 @@ a{color:inherit;text-decoration:none}
 button,input,select{font:inherit;color:inherit}
 em{font-style:italic}
 .progress{position:fixed;top:0;left:0;height:2px;width:0;background:#000;z-index:100}
-.cursor{position:fixed;top:0;left:0;width:34px;height:34px;border:1px solid #000;border-radius:50%;pointer-events:none;z-index:99;transform:translate(-100px,-100px);transition:width .25s var(--ease),height .25s var(--ease),background .25s;mix-blend-mode:difference;background:transparent;border-color:#fff}
+.cursor{position:fixed;top:0;left:0;width:34px;height:34px;border-radius:50%;pointer-events:none;z-index:99;transform:translate(-100px,-100px);transition:width .25s var(--ease),height .25s var(--ease),background .25s;mix-blend-mode:difference;background:transparent}
 .cursor.big{width:64px;height:64px;background:#fff}
 @media (hover:none){.cursor{display:none}}
 .nav{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px clamp(18px,4vw,48px);z-index:50;background:rgba(255,255,255,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:border-color .3s,transform .4s var(--ease)}
@@ -141,6 +141,7 @@ h3{font-size:clamp(20px,2.2vw,26px);font-weight:400;letter-spacing:-.01em}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .foot{border-top:1px solid #000;padding:60px clamp(18px,6vw,96px);text-align:center}
 .foot .logo{font-size:clamp(60px,14vw,180px);letter-spacing:-.04em;line-height:1}
+.foot>p:not(.credit){font-size:19px}
 .view{position:fixed;inset:0;background:#fff;z-index:200;overflow:auto;padding:90px clamp(18px,6vw,96px) 60px;animation:pop .5s var(--ease)}
 .view .inner{max-width:560px;margin:0 auto}
 .view .x{position:fixed;top:18px;right:20px}
