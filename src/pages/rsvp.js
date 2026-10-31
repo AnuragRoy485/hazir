@@ -27,7 +27,7 @@ const msgCard=(h,p)=>root.innerHTML=`<div class="card reveal in center"><h2>${h}
     <form id="f" novalidate>
       <div class="yn"><button type="button" class="yb ${att?'on':''}" data-a="1">Yes, I will be there</button><button type="button" class="yb ${!att?'on':''}" data-a="0">Sorry, I cannot</button></div>
       ${ev.invitee_name?'':'<label class="field">Your name<input id="n" maxlength="40" autocomplete="name" required></label>'}
-      <label class="field">Phone (optional)<span class="ph"><select id="pc" aria-label="Country code">${ccOptions(DEF_ISO)}</select><input id="ph" type="tel" maxlength="20" autocomplete="tel-national" placeholder="Phone number"></span></label>
+      <label class="field">Phone (optional)<span class="ph"><select id="pc" class="ccode" aria-label="Country code">${ccOptions(DEF_ISO)}</select><input id="ph" type="tel" maxlength="20" autocomplete="tel-national" placeholder="Phone number"></span></label>
       <label class="field">Email (optional)<input id="em" type="email" maxlength="80" autocomplete="email" placeholder="you@example.com"></label>
       <div id="more" ${att?'':'hidden'}>
         ${ev.ask_meal!==false?`<label class="field">Your meal<select id="m">${MEALS.map(x=>`<option${x===ev.my_meal?' selected':''}>${x}</option>`).join('')}</select></label>`:''}

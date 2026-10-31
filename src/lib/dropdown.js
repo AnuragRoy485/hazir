@@ -42,8 +42,17 @@ function enhance(sel) {
   sel.classList.add('dd-src');
   sel.setAttribute('aria-hidden', 'true');
   sel.tabIndex = -1;
+  // Country-code selects carry a real flag sprite and a compact "+code" button label.
+  const isCC = sel.classList.contains('ccode');
+  if (isCC) wrap.classList.add('dd--cc');
   sel.after(wrap);
   wrap.append(btn, list);
+  const flagSpan = iso => {
+    const f = document.createElement('span');
+    f.className = 'flg flg-' + iso.toLowerCase();
+    f.setAttribute('aria-hidden', 'true');
+    return f;
+  };
 
   let cur = -1, lastSig = null, buf = '', bufT = 0;
   const items = () => [...list.children];
@@ -51,7 +60,13 @@ function enhance(sel) {
 
   const sync = () => {
     const o = sel.options[sel.selectedIndex];
-    val.textContent = o ? o.text : '';
+    if (isCC) {
+      val.innerHTML = '';
+      if (o && o.value) val.append(flagSpan(o.value), document.createTextNode(o.dataset.cc || o.text));
+      else val.textContent = o ? o.text : '';
+    } else {
+      val.textContent = o ? o.text : '';
+    }
     items().forEach((li, i) => li.setAttribute('aria-selected', String(i === sel.selectedIndex)));
   };
 
@@ -63,7 +78,8 @@ function enhance(sel) {
     [...sel.options].forEach(o => {
       const li = document.createElement('li');
       li.setAttribute('role', 'option');
-      li.textContent = o.text;
+      if (isCC && o.value) li.append(flagSpan(o.value));
+      li.append(document.createTextNode(o.text));
       if (o.disabled) li.setAttribute('aria-disabled', 'true');
       list.append(li);
     });

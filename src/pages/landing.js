@@ -56,7 +56,7 @@ function guestForm(box,ev,st,o={}){
   ${ev.dead?`<p class="banner${closed?' warn':''}">${closed?'RSVPs closed on ':'Please answer by '}${fdate(ev.dead)}.</p>`:''}
   ${closed?'':`<div class="yn"><button class="vy" aria-pressed="false">Yes</button><button class="vn" aria-pressed="false">No</button></div>
   <div class="more"><label class="field">Your name<input class="vname" maxlength="40" value="${esc(inv)}" placeholder="Your name"></label>
-  <label class="field">Phone (optional)<span class="ph"><select class="vpc" aria-label="Country code">${ccOptions(DEF_ISO)}</select><input class="vph" type="tel" maxlength="20" placeholder="Phone number"></span></label>
+  <label class="field">Phone (optional)<span class="ph"><select class="vpc ccode" aria-label="Country code">${ccOptions(DEF_ISO)}</select><input class="vph" type="tel" maxlength="20" placeholder="Phone number"></span></label>
   <label class="field">Email (optional)<input class="vem" type="email" maxlength="80" placeholder="you@example.com"></label>
   <div class="yes-only"><label class="field">Your meal<select class="vmeal">${opt(MEALS)}</select></label>
   <div class="field"><span>How many are coming, including you</span><div class="stepper"><button class="mi" type="button" aria-label="Fewer">-</button><b class="vp">1</b><button class="pl" type="button" aria-label="More">+</button></div></div>
