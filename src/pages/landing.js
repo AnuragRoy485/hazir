@@ -1,5 +1,5 @@
 import { request } from '../lib/http.js';
-import { parsePhone, ccOptions, DEF_ISO } from '../lib/countries.js';
+import { parsePhone, ccOptions, DEF_ISO, bindPhone } from '../lib/countries.js';
 (()=>{
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -70,6 +70,7 @@ function guestForm(box,ev,st,o={}){
   const clk=makeClock(q('.guest'),m=>q('.vt').textContent=fmt(m),ev.time||19*60);
   const drawComp=()=>{q('.comps').innerHTML=p>1?Array.from({length:p-1},(_,i)=>`<div class="comp"><input data-i="${i}" class="cn" placeholder="Guest ${i+2} name" maxlength="40" value="${esc((comp[i]||{}).n||'')}"><select data-i="${i}" class="cm">${opt(MEALS,(comp[i]||{}).m||'Veg')}</select></div>`).join(''):'';q('.comps').querySelectorAll('.cn').forEach(x=>x.oninput=()=>{(comp[x.dataset.i]=comp[x.dataset.i]||{}).n=x.value});q('.comps').querySelectorAll('.cm').forEach(x=>x.onchange=()=>{(comp[x.dataset.i]=comp[x.dataset.i]||{}).m=x.value})};
   const pk=c=>{ch=c;q('.vy').setAttribute('aria-pressed',c==='y');q('.vn').setAttribute('aria-pressed',c==='n');q('.more').classList.add('open');q('.yes-only').style.display=c==='y'?'':'none';q('.done').hidden=true};
+  bindPhone(q('.vph'),q('.vpc'));
   q('.vy').onclick=()=>pk('y');q('.vn').onclick=()=>pk('n');
   q('.pl').onclick=()=>{p=Math.min(max,p+1);q('.vp').textContent=p;drawComp()};q('.mi').onclick=()=>{p=Math.max(1,p-1);q('.vp').textContent=p;drawComp()};
   q('.vs').onclick=()=>{if(!ch)return;const n=q('.vname').value.trim()||'Guest';const dn=q('.done');

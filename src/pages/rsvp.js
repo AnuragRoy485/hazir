@@ -2,7 +2,7 @@
 import { rpc } from '../lib/db.js';
 import { $, $$, initEffects, copy } from '../lib/ui.js';
 import { esc, fmtTime, fmtDate, fmtDeadline, MEALS } from '../lib/format.js';
-import { parsePhone, ccOptions, DEF_ISO } from '../lib/countries.js';
+import { parsePhone, ccOptions, DEF_ISO, bindPhone } from '../lib/countries.js';
 
 const root=$('#root'),q=new URLSearchParams(location.search),eid=q.get('e'),tok=q.get('t')||'';let edit=q.get('r')||'';
 initEffects();
@@ -43,6 +43,7 @@ const msgCard=(h,p)=>root.innerHTML=`<div class="card reveal in center"><h2>${h}
       <button class="btn full" id="sb">${ev.answered?'Update my answer':'Send my answer'}</button>
     </form></div>`;
     $$('.yb').forEach(b=>b.onclick=()=>{att=b.dataset.a==='1';$$('.yb').forEach(x=>x.classList.toggle('on',x===b));$('#more').hidden=!att});
+    bindPhone($('#ph'),$('#pc'));
     const cs=()=>{comps.length=party()-1;$('#cs').innerHTML=Array.from({length:party()-1},(_,i)=>{comps[i]=comps[i]||{n:'',m:'Veg'};const kid=i>=adults-1;return `<div class="comp"><label class="field">Guest ${i+2} name <span class="ctag">${kid?'kid':'adult'}</span><input data-ci="${i}" maxlength="40" value="${esc(comps[i].n)}"></label>${ev.ask_meal!==false?`<label class="field">Meal<select data-cm="${i}">${MEALS.map(x=>`<option${x===comps[i].m?' selected':''}>${x}</option>`).join('')}</select></label>`:''}</div>`}).join('');
       $$('[data-ci]').forEach(i=>i.oninput=()=>comps[i.dataset.ci].n=i.value);$$('[data-cm]').forEach(i=>i.onchange=()=>comps[i.dataset.cm].m=i.value)};
     cs();

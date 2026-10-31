@@ -1524,8 +1524,8 @@ select pg_notify('pgrst', 'reload schema');
 -- Migration 26: phone and email are required for new guest answers. The guest
 -- page validates format per country before this runs; the server enforces
 -- presence on the 15-argument shape current pages call. The 13-argument
--- wrapper stays permissive so pages cached before migration 25 keep working
--- during the asset cache window.
+-- pages cached before migration 25 can no longer send contact-less
+-- answers; the 13-argument shape below now fails closed with a reload message.
 create or replace function public.submit_rsvp(p_event text, p_token text, p_name text, p_attending boolean,
   p_grp text, p_meal text, p_party int, p_arrival int, p_comp jsonb, p_note text, p_adults int, p_kids int, p_edit text,
   p_phone text, p_email text)
@@ -1585,6 +1585,19 @@ begin
     left(trim(p_phone), 40), left(trim(p_email), 80))
   returning edit_token into v_edit;
   return jsonb_build_object('ok', true, 'edit', v_edit);
+end $$;
+
+select pg_notify('pgrst', 'reload schema');
+
+-- Cached pages older than migration 25 call the 13-argument shape, which
+-- cannot carry phone or email. Fail closed so no contact-less answer can be
+-- written; the guest refreshes once (assets reload) and answers again.
+-- No rows are written, so existing records are untouched.
+create or replace function public.submit_rsvp(p_event text, p_token text, p_name text, p_attending boolean,
+  p_grp text, p_meal text, p_party int, p_arrival int, p_comp jsonb, p_note text, p_adults int, p_kids int, p_edit text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  raise exception 'This page is out of date. Please refresh it once (Ctrl+Shift+R) and send your answer again.';
 end $$;
 
 select pg_notify('pgrst', 'reload schema');
