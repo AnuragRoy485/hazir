@@ -1,7 +1,7 @@
 // Hazir guest page: sees only event title, date and deadline; answers via a locked server function. */
 import { rpc } from '../lib/db.js';
 import { $, $$, initEffects, copy } from '../lib/ui.js';
-import { esc, fmtTime, fmtDate, fmtDeadline, MEALS, GROUPS } from '../lib/format.js';
+import { esc, fmtTime, fmtDate, fmtDeadline, MEALS } from '../lib/format.js';
 
 const root=$('#root'),q=new URLSearchParams(location.search),eid=q.get('e'),tok=q.get('t')||'';let edit=q.get('r')||'';
 initEffects();
@@ -27,7 +27,7 @@ const msgCard=(h,p)=>root.innerHTML=`<div class="card reveal in center"><h2>${h}
       <div class="yn"><button type="button" class="yb ${att?'on':''}" data-a="1">Yes, I will be there</button><button type="button" class="yb ${!att?'on':''}" data-a="0">Sorry, I cannot</button></div>
       ${ev.invitee_name?'':'<label class="field">Your name<input id="n" maxlength="40" autocomplete="name" required></label>'}
       <div id="more" ${att?'':'hidden'}>
-        ${ev.ask_meal!==false?`<div class="two"><label class="field">You are<select id="g">${GROUPS.map(x=>`<option${x===ev.my_grp?' selected':''}>${x}</option>`).join('')}</select></label><label class="field">Your meal<select id="m">${MEALS.map(x=>`<option${x===ev.my_meal?' selected':''}>${x}</option>`).join('')}</select></label></div>`:`<label class="field">You are<select id="g">${GROUPS.map(x=>`<option${x===ev.my_grp?' selected':''}>${x}</option>`).join('')}</select></label>`}
+        ${ev.ask_meal!==false?`<label class="field">Your meal<select id="m">${MEALS.map(x=>`<option${x===ev.my_meal?' selected':''}>${x}</option>`).join('')}</select></label>`:''}
         <div class="two">
           <label class="field">Adults<div class="stepper"><button type="button" id="ami">-</button><b id="ac">${adults}</b><button type="button" id="apl">+</button></div></label>
           <label class="field">Kids<div class="stepper"><button type="button" id="kmi">-</button><b id="kc">${kids}</b><button type="button" id="kpl">+</button></div></label>
@@ -52,13 +52,13 @@ const msgCard=(h,p)=>root.innerHTML=`<div class="card reveal in center"><h2>${h}
     $('#f').onsubmit=async e=>{e.preventDefault();const m=$('#msg'),b=$('#sb');m.hidden=true;
       const name=ev.invitee_name||($('#n')&&$('#n').value.trim());if(!name){m.hidden=false;m.textContent='Please enter your name.';return}
       b.disabled=true;b.textContent='Sending...';
-      try{const nt=$('#nt');const note=nt?(nt.value.trim()||null):null;const r=await rpc('submit_rsvp',{p_event:eid,p_token:tok||null,p_name:name,p_attending:att,p_grp:att?$('#g').value:null,p_meal:att&&ev.ask_meal!==false?$('#m').value:null,p_party:att?party():0,p_arrival:att&&ev.ask_arrival!==false?arrival:null,p_comp:att?comps.map((c,i)=>({n:(c.n||'Guest').slice(0,40),m:ev.ask_meal!==false?c.m:null,k:i<adults-1?'a':'k'})):[],p_note:note,p_adults:att?adults:0,p_kids:att?kids:0,p_edit:edit||null});
+      try{const nt=$('#nt');const note=nt?(nt.value.trim()||null):null;const r=await rpc('submit_rsvp',{p_event:eid,p_token:tok||null,p_name:name,p_attending:att,p_grp:null,p_meal:att&&ev.ask_meal!==false?$('#m').value:null,p_party:att?party():0,p_arrival:att&&ev.ask_arrival!==false?arrival:null,p_comp:att?comps.map((c,i)=>({n:(c.n||'Guest').slice(0,40),m:ev.ask_meal!==false?c.m:null,k:i<adults-1?'a':'k'})):[],p_note:note,p_adults:att?adults:0,p_kids:att?kids:0,p_edit:edit||null});
         const keep=tok?`${location.origin}/rsvp?e=${eid}&t=${tok}`:`${location.origin}/rsvp?e=${eid}&r=${r.edit}`;
         root.innerHTML=`<div class="card reveal in center rsvpdone"><div class="tick">&#10003;</div><h2>${att?'See you there.':'Thank you for letting us know.'}</h2><p class="muted">${att?`We have you down for ${party()} ${party()>1?'people':'person'}${kids?` (${adults} ${adults>1?'adults':'adult'}, ${kids} ${kids>1?'kids':'kid'})`:''}${ev.ask_arrival!==false?` around ${fmtTime(arrival)}`:''}.`:'Your host has been told.'}</p>
         <div class="savebox"><p class="saveline"><b>Plans change. Keep your RSVP handy.</b><br>Save this link to update your answer anytime.</p>
         <div class="linkbox"><input readonly value="${keep}"><button class="btn btn-sm" id="cp">Copy my RSVP link</button></div></div>
         <button class="btn btn-ghost" id="ch">Change my answer</button></div>`;
-        if(att){ev.my_grp=$('#g').value;if(ev.ask_meal!==false)ev.my_meal=$('#m').value}ev.my_attending=att;ev.my_adults=adults;ev.my_kids=kids;ev.my_arrival=arrival;ev.my_comp=comps.map((c,i)=>({n:c.n,m:c.m,k:i<adults-1?'a':'k'}));ev.my_note=note;ev.answered=true;
+        if(att&&ev.ask_meal!==false)ev.my_meal=$('#m').value;ev.my_attending=att;ev.my_adults=adults;ev.my_kids=kids;ev.my_arrival=arrival;ev.my_comp=comps.map((c,i)=>({n:c.n,m:c.m,k:i<adults-1?'a':'k'}));ev.my_note=note;ev.answered=true;
         if(r.edit){edit=r.edit;if(!tok)history.replaceState(null,'',`?e=${eid}&r=${r.edit}`)}
         $('#cp').onclick=()=>copy(keep,'Link copied');
         $('#ch').onclick=draw}

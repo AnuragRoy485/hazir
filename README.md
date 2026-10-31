@@ -32,7 +32,7 @@ Host (signed in with email and password):
 
 Guest (no account):
 
-- One link, any phone. Yes or no, name, group, meal, adults and kids counted separately up to the host's limit, each companion named with a meal, arrival time slider, note to the host.
+- One link, any phone. Yes or no, name, meal, adults and kids counted separately up to the host's limit, each companion named with a meal, arrival time slider, note to the host.
 - After answering, the guest gets a saveable personal link ("Plans change. Keep your RSVP handy.") that reopens their own answer - and only theirs - to change it later.
 - Personal links lock the answer to that guest and let them change it later. Answers close at the exact deadline time, enforced by the database, and guest answers have basic abuse limits (see docs/SECURITY.md).
 - A guest can only see the event title, date, host name and deadline. Never other guests, meals or answers.
