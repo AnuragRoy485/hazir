@@ -1,4 +1,5 @@
 {
+  "buildCommand": "node scripts/bump-assets.mjs",
   "cleanUrls": true,
   "rewrites": [
     {
