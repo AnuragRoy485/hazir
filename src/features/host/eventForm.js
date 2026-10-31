@@ -27,7 +27,7 @@ export function eventForm(ev){
     <div class="two"><label class="field">RSVP closes on (optional)<input id="dl" type="date" value="${dz.date}"></label><label class="field">At what time<input id="dt" type="time" value="${dz.time}"></label></div>
     <label class="field">Timezone for the deadline<select id="tz">${zs.map(x=>`<option${x===e.tz?' selected':''}>${x}</option>`).join('')}</select></label>
     <p class="fine">Guests cannot answer after this exact moment. The server enforces it, not just the page.</p>
-    <label class="field">Message to guests (optional)<textarea id="ms" rows="3" maxlength="300" placeholder="Dress code, parking, a note of welcome...">${esc(e.message||'')}</textarea></label>
+    <label class="field">Message to guests (optional)<textarea id="ms" rows="3" placeholder="Dress code, parking, a note of welcome...">${esc(e.message||'')}</textarea></label>
     <label class="field">Usual arrival time<input id="tm" type="time" value="${String(Math.floor(e.default_time/60)).padStart(2,'0')}:${String(e.default_time%60).padStart(2,'0')}"></label>
     ${ev?'':'<label class="field">Guest names, one per line (optional)<textarea id="l" rows="5" placeholder="Aarav Mehta&#10;Diya Rao&#10;Kabir Sen"></textarea></label><p class="fine">With names, every guest gets their own personal link, and you can see exactly who has not answered yet.</p>'}
     <div class="msg" id="msg" hidden></div>

@@ -1169,3 +1169,39 @@ begin
 end $$;
 revoke all on function public.admin_contact_messages(), public.admin_delete_contact_message(uuid) from public;
 grant execute on function public.admin_contact_messages(), public.admin_delete_contact_message(uuid) to authenticated;
+
+-- Migration 22: no length limit on the message to guests. Hosts write freely;
+-- the browser maxlength, the table check and the admin truncation are removed.
+alter table public.events drop constraint if exists events_message_check;
+
+create or replace function public.admin_update_event(p_event_id text, p_patch jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  if not exists (select 1 from public.events where id = p_event_id) then raise exception 'event not found'; end if;
+  if p_patch ? 'title' and (char_length(trim(p_patch->>'title')) = 0 or char_length(p_patch->>'title') > 80) then
+    raise exception 'title must be 1-80 characters'; end if;
+  update public.events set
+    title = case when p_patch ? 'title' then trim(p_patch->>'title') else title end,
+    occasion = case when p_patch ? 'occasion' then left(trim(p_patch->>'occasion'),40) else occasion end,
+    event_date = case when p_patch ? 'event_date' then (p_patch->>'event_date')::date else event_date end,
+    host_name = case when p_patch ? 'host_name' then nullif(left(trim(p_patch->>'host_name'),40),'') else host_name end,
+    invited = case when p_patch ? 'invited' then greatest(1, least(5000, (p_patch->>'invited')::int)) else invited end,
+    venue = case when p_patch ? 'venue' then nullif(left(trim(p_patch->>'venue'),120),'') else venue end,
+    max_party = case when p_patch ? 'max_party' then greatest(1, least(10, (p_patch->>'max_party')::int)) else max_party end,
+    message = case when p_patch ? 'message' then nullif(trim(p_patch->>'message'),'') else message end,
+    default_time = case when p_patch ? 'default_time' then greatest(0, least(1439, (p_patch->>'default_time')::int)) else default_time end,
+    deadline_at = case when p_patch ? 'deadline_at' then nullif(p_patch->>'deadline_at','')::timestamptz else deadline_at end,
+    tz = case when p_patch ? 'tz' then nullif(trim(p_patch->>'tz'),'') else tz end,
+    rsvp_closed = case when p_patch ? 'rsvp_closed' then (p_patch->>'rsvp_closed')::boolean else rsvp_closed end,
+    banner = case when p_patch ? 'banner' then nullif(left(p_patch->>'banner',500),'') else banner end,
+    banner_og = case when p_patch ? 'banner_og' then nullif(left(p_patch->>'banner_og',500),'') else banner_og end
+  where id = p_event_id;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_update_event', jsonb_build_object('event', p_event_id, 'fields', (select jsonb_object_agg(key, true) from jsonb_object_keys(p_patch) key)));
+end $$;
+
+
+revoke all on function public.admin_update_event(text, jsonb) from public;
+grant execute on function public.admin_update_event(text, jsonb) to authenticated;

@@ -84,7 +84,7 @@ body.noscroll{overflow:hidden}
 .ctip.l{left:0}.ctip.r{right:0}.cd:hover .ctip,.cd:focus-within .ctip{opacity:1;visibility:visible;transform:none}
 .ti{display:flex;flex-direction:column;gap:2px;font-size:14px}.ti+.ti{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}.ti b{font-weight:400;font-size:17px}.ti span{color:var(--mut)}
 .cday{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}.cday h4{margin-bottom:10px}.crow{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;border:1px solid var(--line);border-radius:14px;background:#fff;padding:12px 16px;margin-bottom:8px;font:inherit;cursor:pointer;transition:border-color .2s}.crow:hover{border-color:#000}.crow span{color:var(--mut)}
-.gmsg{margin:14px 0;padding:14px 18px;border-left:3px solid #000;background:var(--soft);border-radius:0 14px 14px 0;line-height:1.5}
+.gmsg{margin:14px 0;padding:14px 18px;border-left:3px solid #000;background:var(--soft);border-radius:0 14px 14px 0;line-height:1.5;white-space:pre-wrap;overflow-wrap:break-word}
 @media(max-width:560px){.cgrid{gap:4px}.cd{height:52px}.crow{flex-direction:column}}
 [hidden]{display:none!important}
 

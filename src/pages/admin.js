@@ -225,7 +225,7 @@ function editEventFull(ov, id, again) {
     <div class="two"><label class="field">RSVP closes on (optional)<input id="ef-dld" type="date" value="${dz.date}"></label>
     <label class="field">At what time<input id="ef-dlt" type="time" value="${dz.time}"></label></div>
     <label class="field">Timezone for the deadline<select id="ef-tz">${TZS.map(x => `<option${x === ev.tz ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
-    <label class="field">Message to guests (optional)<textarea id="ef-msg" rows="3" maxlength="300">${esc(ev.message || '')}</textarea></label>
+    <label class="field">Message to guests (optional)<textarea id="ef-msg" rows="3">${esc(ev.message || '')}</textarea></label>
     <div class="two"><label class="field">Usual arrival time<input id="ef-time" type="time" value="${hm(ev.default_time)}"></label>
     <label class="field">RSVPs<select id="ef-closed"><option value="open"${!ev.rsvp_closed ? ' selected' : ''}>Open</option><option value="closed"${ev.rsvp_closed ? ' selected' : ''}>Closed</option></select></label></div>
     <label class="field">Event banner (optional)
