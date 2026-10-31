@@ -56,8 +56,8 @@ function guestForm(box,ev,st,o={}){
   ${ev.dead?`<p class="banner${closed?' warn':''}">${closed?'RSVPs closed on ':'Please answer by '}${fdate(ev.dead)}.</p>`:''}
   ${closed?'':`<div class="yn"><button class="vy" aria-pressed="false">Yes</button><button class="vn" aria-pressed="false">No</button></div>
   <div class="more"><label class="field">Your name<input class="vname" maxlength="40" value="${esc(inv)}" placeholder="Your name"></label>
-  <label class="field">Phone (optional)<span class="ph"><select class="vpc ccode" aria-label="Country code">${ccOptions(DEF_ISO)}</select><input class="vph" type="tel" maxlength="20" placeholder="Phone number"></span></label>
-  <label class="field">Email (optional)<input class="vem" type="email" maxlength="80" placeholder="you@example.com"></label>
+  <label class="field">Phone<span class="ph"><select class="vpc ccode" aria-label="Country code">${ccOptions(DEF_ISO)}</select><input class="vph" type="tel" maxlength="20" placeholder="Phone number" required></span></label>
+  <label class="field">Email<input class="vem" type="email" maxlength="80" placeholder="you@example.com" required></label>
   <div class="yes-only"><label class="field">Your meal<select class="vmeal">${opt(MEALS)}</select></label>
   <div class="field"><span>How many are coming, including you</span><div class="stepper"><button class="mi" type="button" aria-label="Fewer">-</button><b class="vp">1</b><button class="pl" type="button" aria-label="More">+</button></div></div>
   <div class="comps"></div>
@@ -74,8 +74,11 @@ function guestForm(box,ev,st,o={}){
   q('.pl').onclick=()=>{p=Math.min(max,p+1);q('.vp').textContent=p;drawComp()};q('.mi').onclick=()=>{p=Math.max(1,p-1);q('.vp').textContent=p;drawComp()};
   q('.vs').onclick=()=>{if(!ch)return;const n=q('.vname').value.trim()||'Guest';const dn=q('.done');
     const phv=q('.vph')?q('.vph').value.trim():'';let ph='',em='';
-    if(phv){const iso=q('.vpc').value;if(!iso){dn.hidden=false;dn.textContent='Pick the country code for your phone number.';return}const pp=parsePhone(phv,iso);if(!pp){dn.hidden=false;dn.textContent='That phone number does not look right for the selected country.';return}ph=pp.number}
-    const emv=q('.vem')?q('.vem').value.trim():'';if(emv){if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emv)){dn.hidden=false;dn.textContent='That email address does not look right.';return}em=emv}
+    if(!phv){dn.hidden=false;dn.textContent='Please enter your phone number.';return}
+    {const iso=q('.vpc').value;if(!iso){dn.hidden=false;dn.textContent='Pick the country code for your phone number.';return}const pp=parsePhone(phv,iso);if(!pp){dn.hidden=false;dn.textContent='That phone number does not look right for the selected country.';return}ph=pp.number}
+    const emv=q('.vem')?q('.vem').value.trim():'';
+    if(!emv){dn.hidden=false;dn.textContent='Please enter your email address.';return}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emv)){dn.hidden=false;dn.textContent='That email address does not look right.';return}em=emv
     const r={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),n,y:ch==='y',note:q('.vnote').value.trim(),ts:Date.now()};if(ph)r.ph=ph;if(em)r.em=em;if(o.gid!=null)r.gid=o.gid;
     if(r.y){r.p=p;r.t=clk.get();r.m=q('.vmeal').value;r.c=Array.from({length:p-1},(_,i)=>({n:(comp[i]||{}).n||`${n}'s guest ${i+2}`,m:(comp[i]||{}).m||'Veg'}))}else{r.p=0;r.t=0;r.m='';r.c=[]}
     let a=st.get();if(r.gid!=null)a=a.filter(x=>x.gid!==r.gid);st.set([...a,r]);o.onSent&&o.onSent(r);const d=q('.done');d.hidden=false;d.textContent=r.y?`Thank you, ${n}. We will see ${r.p} of you at ${fmt(r.t)}.`:`Thank you, ${n}. Your answer is recorded.`};
