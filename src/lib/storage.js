@@ -1,5 +1,5 @@
-import { API_URL, PUBLISHABLE_KEY } from './config.js?v=20261101-3';
-import { getToken } from './session.js?v=20261101-3';
+import { API_URL, PUBLISHABLE_KEY } from './config.js?v=20261101-4';
+import { getToken } from './session.js?v=20261101-4';
 
 const BUCKET = 'banners';
 export const BANNER_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
@@ -50,7 +50,9 @@ async function makePreview(file) {
 
 
 /** Branded 1200x630 card drawn when the host has no banner of their own, so shared links
- * still get a Hazir preview with the event name, date and time. */
+ * still get a Hazir preview with the event name, date and time. Everything sits inside
+ * the central 630px square so chat apps that crop previews to a square thumbnail keep
+ * the full title, date and host readable. */
 async function makeDefaultCard({ title, when, host }) {
   const W = 1200, H = 630, c = document.createElement('canvas');
   c.width = W; c.height = H;
@@ -58,22 +60,34 @@ async function makeDefaultCard({ title, when, host }) {
   x.fillStyle = '#f7f4ee'; x.fillRect(0, 0, W, H);
   x.strokeStyle = '#e3ddd2'; x.lineWidth = 3; x.strokeRect(30, 30, W - 60, H - 60);
   x.textAlign = 'center';
+  const CX = W / 2, SAFE = 560;
   x.fillStyle = '#1c1a17';
-  x.font = 'italic 700 52px Georgia, "Times New Roman", serif';
-  x.fillText('Hazir.', W / 2, 128);
-  // Event name: up to two lines, shrinking until it fits.
+  x.font = 'italic 700 46px Georgia, "Times New Roman", serif';
+  x.fillText('Hazir.', CX, 112);
   const words = String(title || 'You are invited').split(/\s+/);
-  let size = 88, lines = [];
-  const wrap = () => { const L = ['']; for (const w of words) { const i = L.length - 1; const t = L[i] ? L[i] + ' ' + w : w; if (x.measureText(t).width > W - 240 && L[i]) { if (L.length === 2) { L[1] = L[1] + ' …'; break; } L.push(w); } else L[i] = t; } return L; };
-  for (; size >= 46; size -= 8) { x.font = `700 ${size}px Georgia, "Times New Roman", serif`; lines = wrap(); if (lines.every(l => x.measureText(l).width <= W - 240)) break; }
-  lines.forEach((l, i) => x.fillText(l, W / 2, 268 + i * (size + 14)));
+  const wrapFull = () => { const L = ['']; for (const w of words) { const i = L.length - 1; const t = L[i] ? L[i] + ' ' + w : w; if (x.measureText(t).width > SAFE && L[i]) L.push(w); else L[i] = t; } return L; };
+  let size = 80, lines = [];
+  for (; size >= 40; size -= 4) { x.font = `700 ${size}px Georgia, "Times New Roman", serif`; const L = wrapFull(); if (L.length <= 3 && L.every(l => x.measureText(l).width <= SAFE)) { lines = L; break; } }
+  if (!lines.length) { x.font = '700 40px Georgia, "Times New Roman", serif'; const all = wrapFull(); lines = all.slice(0, 3); if (all.length > 3) lines[2] = lines[2] + ' …'; }
+  const lh = size + 12;
   x.fillStyle = '#5c5648';
-  x.font = '400 40px Georgia, "Times New Roman", serif';
-  const sub = [when, host ? 'Hosted by ' + host : ''].filter(Boolean).join('  ·  ');
-  if (sub) x.fillText(sub, W / 2, 268 + lines.length * (size + 14) + 42);
-  x.font = 'italic 400 34px Georgia, "Times New Roman", serif';
-  x.fillText('RSVP with one tap', W / 2, H - 76);
-  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.86));
+  let ws = 38; x.font = `400 ${ws}px Georgia, "Times New Roman", serif`;
+  while (x.measureText(when).width > SAFE && ws > 26) { ws -= 2; x.font = `400 ${ws}px Georgia, "Times New Roman", serif`; }
+  let hs = 32; const hostLine = host ? 'Hosted by ' + host : '';
+  x.font = `400 ${hs}px Georgia, "Times New Roman", serif`;
+  while (x.measureText(hostLine).width > SAFE && hs > 24) { hs -= 2; x.font = `400 ${hs}px Georgia, "Times New Roman", serif`; }
+  const tagY = H - 56, hostY = tagY - hs - 18, whenY = hostY - ws - 14;
+  const titleBottomMax = whenY - ws - 14;
+  let y0 = Math.min(H / 2 - ((lines.length - 1) * lh) / 2 + 14, titleBottomMax - (lines.length - 1) * lh);
+  x.fillStyle = '#1c1a17'; x.font = `700 ${size}px Georgia, "Times New Roman", serif`;
+  lines.forEach((l, i) => x.fillText(l, CX, y0 + i * lh));
+  x.fillStyle = '#5c5648'; x.font = `400 ${ws}px Georgia, "Times New Roman", serif`;
+  if (when) x.fillText(when, CX, whenY);
+  x.font = `400 ${hs}px Georgia, "Times New Roman", serif`;
+  if (hostLine) x.fillText(hostLine, CX, hostY);
+  x.font = 'italic 400 30px Georgia, "Times New Roman", serif';
+  x.fillText('RSVP with one tap', CX, tagY);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.88));
   if (!blob) throw new Error('Could not prepare the preview image.');
   return blob;
 }

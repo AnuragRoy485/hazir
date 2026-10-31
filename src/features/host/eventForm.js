@@ -1,11 +1,11 @@
-import { auth } from '../../lib/auth.js?v=20261101-3';
-import { db } from '../../lib/db.js?v=20261101-3';
-import { $, toast } from '../../lib/ui.js?v=20261101-3';
-import { OCCASIONS, TZS, browserTz, zonedToIso, isoToZoned, esc, fmtDate, fmtTime } from '../../lib/format.js?v=20261101-3';
-import { uploadBanner, uploadFallbackOg, cleanupOldBanner, BANNER_TYPES, BANNER_MAX } from '../../lib/storage.js?v=20261101-3';
-import { cropBanner } from '../../lib/crop.js?v=20261101-3';
-import { view, busy, niceErr } from './ctx.js?v=20261101-3';
-import { R } from './ctx.js?v=20261101-3';
+import { auth } from '../../lib/auth.js?v=20261101-4';
+import { db } from '../../lib/db.js?v=20261101-4';
+import { $, toast } from '../../lib/ui.js?v=20261101-4';
+import { OCCASIONS, TZS, browserTz, zonedToIso, isoToZoned, esc, fmtDate, fmtTime } from '../../lib/format.js?v=20261101-4';
+import { uploadBanner, uploadFallbackOg, cleanupOldBanner, BANNER_TYPES, BANNER_MAX } from '../../lib/storage.js?v=20261101-4';
+import { cropBanner } from '../../lib/crop.js?v=20261101-4';
+import { view, busy, niceErr } from './ctx.js?v=20261101-4';
+import { R } from './ctx.js?v=20261101-4';
 
 export function eventForm(ev){
   const e=ev||{title:'',occasion:'Wedding',event_date:'',host_name:((auth.user().user_metadata||{}).name)||'',invited:100,deadline:'',max_party:4,default_time:1140,tz:browserTz()};

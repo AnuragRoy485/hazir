@@ -1,13 +1,13 @@
-import { db, rpc } from '../../../../lib/db.js?v=20261101-3';
-import { auth } from '../../../../lib/auth.js?v=20261101-3';
-import { $, $$, copy, toast, confirmBox } from '../../../../lib/ui.js?v=20261101-3';
-import { esc, fmtDate, fmtTime, guestLink, isClosed, fmtDeadline } from '../../../../lib/format.js?v=20261101-3';
-import { state, niceErr } from '../../ctx.js?v=20261101-3';
-import { deleteBanner, uploadFallbackOg } from '../../../../lib/storage.js?v=20261101-3';
-import { drawQr } from '../../../../lib/qr.js?v=20261101-3';
-import { stats } from '../stats.js?v=20261101-3';
-import { nudge } from '../nudge.js?v=20261101-3';
-import { R } from '../../ctx.js?v=20261101-3';
+import { db, rpc } from '../../../../lib/db.js?v=20261101-4';
+import { auth } from '../../../../lib/auth.js?v=20261101-4';
+import { $, $$, copy, toast, confirmBox } from '../../../../lib/ui.js?v=20261101-4';
+import { esc, fmtDate, fmtTime, guestLink, isClosed, fmtDeadline } from '../../../../lib/format.js?v=20261101-4';
+import { state, niceErr } from '../../ctx.js?v=20261101-4';
+import { deleteBanner, uploadFallbackOg } from '../../../../lib/storage.js?v=20261101-4';
+import { drawQr } from '../../../../lib/qr.js?v=20261101-4';
+import { stats } from '../stats.js?v=20261101-4';
+import { nudge } from '../nudge.js?v=20261101-4';
+import { R } from '../../ctx.js?v=20261101-4';
 
 export async function share(p){
   const {ev}=state,s=stats(),link=guestLink(ev);

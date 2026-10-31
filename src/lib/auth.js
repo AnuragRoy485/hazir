@@ -1,5 +1,5 @@
-import { request } from './http.js?v=20261101-3';
-import { getSession, saveSession, toSession, getToken } from './session.js?v=20261101-3';
+import { request } from './http.js?v=20261101-4';
+import { getSession, saveSession, toSession, getToken } from './session.js?v=20261101-4';
 
 export const auth = {
   user: () => getSession() && getSession().user,

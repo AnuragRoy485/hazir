@@ -1,8 +1,8 @@
-import { toast } from '../../../lib/ui.js?v=20261101-3';
-import { fmtTime, guestLink } from '../../../lib/format.js?v=20261101-3';
-import { xlsxDownload } from '../../../lib/xlsx.js?v=20261101-3';
-import { state } from '../ctx.js?v=20261101-3';
-import { stats } from './stats.js?v=20261101-3';
+import { toast } from '../../../lib/ui.js?v=20261101-4';
+import { fmtTime, guestLink } from '../../../lib/format.js?v=20261101-4';
+import { xlsxDownload } from '../../../lib/xlsx.js?v=20261101-4';
+import { state } from '../ctx.js?v=20261101-4';
+import { stats } from './stats.js?v=20261101-4';
 
 function rows(){const s=stats(),L=[['Name','Status','Party','Adults','Kids','Group','Meal','Companions','Arrival','Checked in','Note','Phone','Email','Personal link']];
   state.res.forEach(r=>{const inv=state.inv.find(i=>i.id===r.invitee_id);L.push([r.name,r.attending?'Coming':'Declined',r.party,r.attending?(r.adults!=null?r.adults:r.party):'',r.attending?(r.kids||0):'',r.grp||'',r.meal||'',(r.companions||[]).map(c=>(c.n||'Guest')+' ('+(c.m||'')+')').join('; '),r.attending?fmtTime(r.arrival):'',r.checked_in?'Yes':'',r.note||'',r.phone||'',r.email||'',inv?guestLink(state.ev,inv.token):''])});

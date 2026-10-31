@@ -1,8 +1,8 @@
-import { auth } from '../../lib/auth.js?v=20261101-3';
-import { $, $$ } from '../../lib/ui.js?v=20261101-3';
-import { esc } from '../../lib/format.js?v=20261101-3';
-import { view, busy, niceErr, navr } from './ctx.js?v=20261101-3';
-import { R } from './ctx.js?v=20261101-3';
+import { auth } from '../../lib/auth.js?v=20261101-4';
+import { $, $$ } from '../../lib/ui.js?v=20261101-4';
+import { esc } from '../../lib/format.js?v=20261101-4';
+import { view, busy, niceErr, navr } from './ctx.js?v=20261101-4';
+import { R } from './ctx.js?v=20261101-4';
 
 export function authView(mode,msg){
   navr.innerHTML='<a class="btn btn-ghost btn-sm" href="/">Home</a>';

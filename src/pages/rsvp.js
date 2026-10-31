@@ -1,8 +1,8 @@
 // Hazir guest page: sees only event title, date and deadline; answers via a locked server function. */
-import { rpc } from '../lib/db.js?v=20261101-3';
-import { $, $$, initEffects, copy } from '../lib/ui.js?v=20261101-3';
-import { esc, fmtTime, fmtDate, fmtDeadline, MEALS } from '../lib/format.js?v=20261101-3';
-import { parsePhone, ccOptions, DEF_ISO, bindPhone } from '../lib/countries.js?v=20261101-3';
+import { rpc } from '../lib/db.js?v=20261101-4';
+import { $, $$, initEffects, copy } from '../lib/ui.js?v=20261101-4';
+import { esc, fmtTime, fmtDate, fmtDeadline, MEALS } from '../lib/format.js?v=20261101-4';
+import { parsePhone, ccOptions, DEF_ISO, bindPhone } from '../lib/countries.js?v=20261101-4';
 
 const root=$('#root'),q=new URLSearchParams(location.search),eid=q.get('e'),tok=q.get('t')||'';let edit=q.get('r')||'';
 initEffects();
