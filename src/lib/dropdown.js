@@ -99,9 +99,26 @@ function enhance(sel) {
     list.hidden = false;
     wrap.classList.add('open');
     btn.setAttribute('aria-expanded', 'true');
+    // Open toward whichever side has more room inside the nearest clipping
+    // ancestor (and the viewport), and cap the list height to that space so
+    // containers like the demo's expanding .more never cut the menu off.
+    let clip = wrap.parentElement, clipR = { top: 0, bottom: innerHeight };
+    while (clip && clip !== document.body) {
+      const oy = getComputedStyle(clip).overflowY;
+      if (oy !== 'visible') { clipR = clip.getBoundingClientRect(); break; }
+      clip = clip.parentElement;
+    }
+    const br = btn.getBoundingClientRect();
+    const want = Math.min(246, list.scrollHeight || 246);
+    const below = Math.min(innerHeight, clipR.bottom) - br.bottom - 8;
+    const above = br.top - Math.max(0, clipR.top) - 8;
+    if (below < want && above > below) {
+      wrap.classList.add('up');
+      list.style.maxHeight = Math.max(120, Math.min(246, above)) + 'px';
+    } else {
+      list.style.maxHeight = Math.max(120, Math.min(246, below)) + 'px';
+    }
     setCur(sel.selectedIndex >= 0 ? sel.selectedIndex : 0);
-    const r = list.getBoundingClientRect();
-    if (r.bottom > innerHeight - 8 && btn.getBoundingClientRect().top > r.height + 16) wrap.classList.add('up');
     document.addEventListener('pointerdown', onDoc, true);
     openWrap = wrap;
   };
