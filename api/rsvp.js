@@ -1,6 +1,6 @@
 // Guest invite page with per-event social preview tags. WhatsApp, Facebook and other
 // link-preview crawlers do not run JavaScript, so Open Graph tags are rendered here on
-// the server. The page body is the same rsvp.html as before, served unchanged.
+// the server. The page body is the same rsvp-page.html template, served unchanged. The template lives under a non-conflicting name so clean URLs never shadow this function.
 import { readFileSync } from 'node:fs';
 
 const API = 'https://etzbrtiunqfjyjczsjhe.supabase.co';
@@ -9,8 +9,8 @@ const KEY = 'sb_publishable_CNjSxz8seM6yOgyjzkIZWQ_0DaTgOEW'; // public by desig
 let cache = null;
 async function page(req) {
   if (cache) return cache;
-  try { cache = readFileSync(new URL('../rsvp.html', import.meta.url), 'utf8'); }
-  catch { const r = await fetch('https://' + req.headers.host + '/rsvp.html', { redirect: 'manual' }); if (!r.ok) throw new Error('rsvp.html unavailable'); cache = await r.text(); }
+  try { cache = readFileSync(new URL('../rsvp-page.html', import.meta.url), 'utf8'); }
+  catch { const r = await fetch('https://' + req.headers.host + '/rsvp-page'); if (!r.ok) throw new Error('rsvp-page unavailable'); cache = await r.text(); }
   return cache;
 }
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

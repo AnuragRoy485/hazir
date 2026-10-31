@@ -8,7 +8,7 @@
   ],
   "functions": {
     "api/rsvp.js": {
-      "includeFiles": "rsvp.html"
+      "includeFiles": "rsvp-page.html"
     }
   },
   "headers": [
@@ -70,6 +70,13 @@
           "value": "DENY"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/rsvp.html",
+      "destination": "/rsvp",
+      "permanent": true
     }
   ]
 }

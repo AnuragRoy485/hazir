@@ -44,7 +44,7 @@ Landing page: the story, how it works, a sample dashboard with made-up guests (s
 ```
 index.html            landing page
 app.html              host app (login, events, dashboard)
-rsvp.html             guest RSVP page (served through /rsvp on Vercel)
+rsvp-page.html        guest RSVP page template (rendered with OG tags through /rsvp on Vercel)
 api/rsvp.js           server-rendered guest page: injects per-event social preview (Open Graph) tags
 404.html              styled not-found page
 assets/css/           site.css (base + landing), app.css (host app + guest page)
