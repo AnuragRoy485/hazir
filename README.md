@@ -11,7 +11,7 @@ Hazir means *present, here, accounted for*.
 
 ## Why it exists
 
-Indian gatherings still run on WhatsApp. Hosts count replies by scrolling, guests say "will try", and the real number arrives at the gate: fewer or more people than expected, and many of them late. Food is wasted or runs out. Spreadsheets break at fifty rows and generic form tools do not know that a family of four is one answer with four plates and four meals.
+Gatherings still run on WhatsApp. Hosts count replies by scrolling, guests say "will try", and the real number arrives at the gate: fewer or more people than expected, and many of them late. Food is wasted or runs out. Spreadsheets break at fifty rows and generic form tools do not know that a family of four is one answer with four plates and four meals.
 
 Hazir asks the three questions a host needs answered: **are you coming, how many of you, and when will you arrive.**
 
