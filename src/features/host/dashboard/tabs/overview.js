@@ -1,9 +1,9 @@
-import { $, copy } from '../../../../lib/ui.js';
-import { esc, fmtDate, fmtTime, fmtDeadline, isClosed } from '../../../../lib/format.js';
-import { state } from '../../ctx.js';
-import { stats } from '../stats.js';
-import { stat } from '../stats.js';
-import { animate } from '../stats.js';
+import { $, copy } from '../../../../lib/ui.js?v=20261101-1';
+import { esc, fmtDate, fmtTime, fmtDeadline, isClosed } from '../../../../lib/format.js?v=20261101-1';
+import { state } from '../../ctx.js?v=20261101-1';
+import { stats } from '../stats.js?v=20261101-1';
+import { stat } from '../stats.js?v=20261101-1';
+import { animate } from '../stats.js?v=20261101-1';
 
 export function overview(p){
   const {ev,res}=state,s=stats(),answered=res.length,pct=Math.min(100,Math.round(answered/ev.invited*100));

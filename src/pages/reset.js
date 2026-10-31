@@ -2,9 +2,9 @@
 // recovery token in the URL hash; this page exchanges it for a new password.
 // The old password is never shown or needed, and tokens never leave the browser
 // except to Supabase's own auth endpoint.
-import { request } from '../lib/http.js';
-import { saveSession, toSession } from '../lib/session.js';
-import { $, initEffects, toast } from '../lib/ui.js';
+import { request } from '../lib/http.js?v=20261101-1';
+import { saveSession, toSession } from '../lib/session.js?v=20261101-1';
+import { $, initEffects, toast } from '../lib/ui.js?v=20261101-1';
 
 const root = $('#root');
 

@@ -1,5 +1,5 @@
-import { request } from './http.js';
-import { getSession, getToken } from './session.js';
+import { request } from './http.js?v=20261101-1';
+import { getSession, getToken } from './session.js?v=20261101-1';
 
 /** Row Level Security protected table access, as the signed-in host. */
 export async function db(path, { prefer = 'return=representation', ...opts } = {}) {

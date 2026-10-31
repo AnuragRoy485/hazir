@@ -1,8 +1,8 @@
-import { db } from '../../../lib/db.js';
-import { $, $$, toast } from '../../../lib/ui.js';
-import { GROUPS, MEALS } from '../../../lib/format.js';
-import { state, niceErr } from '../ctx.js';
-import { R } from '../ctx.js';
+import { db } from '../../../lib/db.js?v=20261101-1';
+import { $, $$, toast } from '../../../lib/ui.js?v=20261101-1';
+import { GROUPS, MEALS } from '../../../lib/format.js?v=20261101-1';
+import { state, niceErr } from '../ctx.js?v=20261101-1';
+import { R } from '../ctx.js?v=20261101-1';
 
 export function addGuest(){
   const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="card mcard"><h3>Add guests</h3><p class="muted">Two ways: add names to invite (each gets a personal link), or record a walk-in or phone answer.</p>

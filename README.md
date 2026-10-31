@@ -107,3 +107,11 @@ In plain words:
 - The software comes with no warranty.
 
 This is not an OSI-approved open source license, so it is described as source-available. It is not legal advice; if you need certainty for a commercial situation, ask the author.
+
+## Deploys and asset caching
+
+Every asset URL (CSS, JS modules, vendored files, images referenced from CSS) carries a `?v=` version query. Browsers cache each versioned URL, so a normal refresh picks up a new deploy: the HTML is always revalidated, sees the new `?v=`, and fetches fresh assets. Before pushing any change that touches files under `src/`, `assets/`, or the HTML pages, run:
+
+    python3 scripts/bump-assets.py YYYYMMDD-N
+
+with a fresh version value, and commit the result with your change. Skipping the bump means returning visitors keep stale assets until their browser cache expires.
