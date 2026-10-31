@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node scripts/bump-assets.mjs",
+  "buildCommand": "node scripts/bump-assets.mjs && rm -rf public && mkdir public && cp -r *.html favicon.svg assets src public/",
   "cleanUrls": true,
   "rewrites": [
     {
@@ -79,5 +79,6 @@
       "destination": "/rsvp",
       "permanent": true
     }
-  ]
+  ],
+  "outputDirectory": "public"
 }
