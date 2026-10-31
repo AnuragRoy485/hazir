@@ -1,6 +1,6 @@
 // Shared host-app context: DOM roots, the single state object, and a tiny router registry
 // (each view registers itself on R so views can navigate without circular imports).
-import { $ } from '../../lib/ui.js?v=20261101-2';
+import { $ } from '../../lib/ui.js?v=20261101-3';
 
 export const root = $('#root');
 export const navr = $('#navr');

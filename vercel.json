@@ -1,5 +1,5 @@
 {
-  "cleanUrls": false,
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/rsvp",

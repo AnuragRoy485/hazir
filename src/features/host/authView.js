@@ -1,11 +1,11 @@
-import { auth } from '../../lib/auth.js?v=20261101-2';
-import { $, $$ } from '../../lib/ui.js?v=20261101-2';
-import { esc } from '../../lib/format.js?v=20261101-2';
-import { view, busy, niceErr, navr } from './ctx.js?v=20261101-2';
-import { R } from './ctx.js?v=20261101-2';
+import { auth } from '../../lib/auth.js?v=20261101-3';
+import { $, $$ } from '../../lib/ui.js?v=20261101-3';
+import { esc } from '../../lib/format.js?v=20261101-3';
+import { view, busy, niceErr, navr } from './ctx.js?v=20261101-3';
+import { R } from './ctx.js?v=20261101-3';
 
 export function authView(mode,msg){
-  navr.innerHTML='<a class="btn btn-ghost btn-sm" href="index.html">Home</a>';
+  navr.innerHTML='<a class="btn btn-ghost btn-sm" href="/">Home</a>';
   const t={login:['Welcome back.','Log in to your events.'],signup:['Start hosting.','Create your free host account.']}[mode];
   view(`<section class="authwrap"><div class="card authcard reveal in">
     <p class="eyebrow">${mode==='signup'?'Sign up':mode==='login'?'Log in':'Account'}</p><h2>${t[0]}</h2><p class="muted">${t[1]}</p>

@@ -2,9 +2,9 @@
 // recovery token in the URL hash; this page exchanges it for a new password.
 // The old password is never shown or needed, and tokens never leave the browser
 // except to Supabase's own auth endpoint.
-import { request } from '../lib/http.js?v=20261101-2';
-import { saveSession, toSession } from '../lib/session.js?v=20261101-2';
-import { $, initEffects, toast } from '../lib/ui.js?v=20261101-2';
+import { request } from '../lib/http.js?v=20261101-3';
+import { saveSession, toSession } from '../lib/session.js?v=20261101-3';
+import { $, initEffects, toast } from '../lib/ui.js?v=20261101-3';
 
 const root = $('#root');
 
@@ -39,7 +39,7 @@ async function boot() {
     try {
       await request('/auth/v1/user', { method: 'PUT', body: { password: p1 }, token });
       toast('Password updated');
-      location.href = 'app.html';
+      location.href = '/app';
     } catch (e) {
       m.hidden = false; m.textContent = e.message || 'Could not save the password. The link may have expired.';
       b.disabled = false; b.textContent = 'Save password';

@@ -1,5 +1,5 @@
-import { request } from '../lib/http.js?v=20261101-2';
-import { parsePhone, ccOptions, DEF_ISO, bindPhone } from '../lib/countries.js?v=20261101-2';
+import { request } from '../lib/http.js?v=20261101-3';
+import { parsePhone, ccOptions, DEF_ISO, bindPhone } from '../lib/countries.js?v=20261101-3';
 (()=>{
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;

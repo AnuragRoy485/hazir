@@ -2,19 +2,19 @@
 // Every read and mutation goes through server-enforced RPCs that check the admin
 // role and write an audit row. No client-side role checks are trusted. Deletions
 // require typing a confirmation word; existing passwords are never shown or retrievable - the admin can only set a NEW one.
-import { auth } from '../lib/auth.js?v=20261101-2';
-import { request } from '../lib/http.js?v=20261101-2';
-import { rpc } from '../lib/db.js?v=20261101-2';
-import { $, $$, initEffects, confirmBox, toast } from '../lib/ui.js?v=20261101-2';
-import { esc, fmtDate, fmtTime, OCCASIONS, TZS, zonedToIso, isoToZoned, guestLink } from '../lib/format.js?v=20261101-2';
-import { uploadBanner, uploadFallbackOg, cleanupOldBanner, BANNER_TYPES, BANNER_MAX } from '../lib/storage.js?v=20261101-2';
-import { cropBanner } from '../lib/crop.js?v=20261101-2';
+import { auth } from '../lib/auth.js?v=20261101-3';
+import { request } from '../lib/http.js?v=20261101-3';
+import { rpc } from '../lib/db.js?v=20261101-3';
+import { $, $$, initEffects, confirmBox, toast } from '../lib/ui.js?v=20261101-3';
+import { esc, fmtDate, fmtTime, OCCASIONS, TZS, zonedToIso, isoToZoned, guestLink } from '../lib/format.js?v=20261101-3';
+import { uploadBanner, uploadFallbackOg, cleanupOldBanner, BANNER_TYPES, BANNER_MAX } from '../lib/storage.js?v=20261101-3';
+import { cropBanner } from '../lib/crop.js?v=20261101-3';
 
 const root = $('#root'), navr = $('#navr');
 
 function nav(name) {
-  navr.innerHTML = `<span class="who">${esc(name)}</span><a class="btn btn-ghost btn-sm" href="app.html">My events</a><button class="btn btn-ghost btn-sm" id="so">Log out</button>`;
-  $('#so').onclick = async () => { await auth.signOut(); location.href = 'app.html'; };
+  navr.innerHTML = `<span class="who">${esc(name)}</span><a class="btn btn-ghost btn-sm" href="/app">My events</a><button class="btn btn-ghost btn-sm" id="so">Log out</button>`;
+  $('#so').onclick = async () => { await auth.signOut(); location.href = '/app'; };
 }
 const shell = html => { root.innerHTML = `<section class="evpage">${html}</section>`; };
 const ts = v => v ? new Date(v).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
@@ -59,7 +59,7 @@ function editDialog(title, fields) {
 
 async function boot() {
   const user = auth.user() || await auth.loadUser();
-  if (!user) { location.href = 'app.html'; return; }
+  if (!user) { location.href = '/app'; return; }
   nav((user.user_metadata && user.user_metadata.name) || user.email || '');
   let adm = false;
   try { adm = await rpc('is_admin'); } catch { adm = false; }

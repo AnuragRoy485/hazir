@@ -10,7 +10,7 @@ let cache = null;
 async function page(req) {
   if (cache) return cache;
   try { cache = readFileSync(new URL('../rsvp.html', import.meta.url), 'utf8'); }
-  catch { const r = await fetch('https://' + req.headers.host + '/rsvp.html'); cache = await r.text(); }
+  catch { const r = await fetch('https://' + req.headers.host + '/rsvp.html', { redirect: 'manual' }); if (!r.ok) throw new Error('rsvp.html unavailable'); cache = await r.text(); }
   return cache;
 }
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

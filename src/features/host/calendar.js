@@ -1,7 +1,7 @@
 // Month calendar of the host's events. Days with events carry a marker; hover, keyboard focus or tap shows details.
-import { $, $$ } from '../../lib/ui.js?v=20261101-2';
-import { esc, fmtDate, fmtTime, isClosed } from '../../lib/format.js?v=20261101-2';
-import { R } from './ctx.js?v=20261101-2';
+import { $, $$ } from '../../lib/ui.js?v=20261101-3';
+import { esc, fmtDate, fmtTime, isClosed } from '../../lib/format.js?v=20261101-3';
+import { R } from './ctx.js?v=20261101-3';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const cal = { y: new Date().getFullYear(), m: new Date().getMonth(), sel: '' };
