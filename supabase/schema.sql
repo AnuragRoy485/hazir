@@ -1601,3 +1601,15 @@ begin
 end $$;
 
 select pg_notify('pgrst', 'reload schema');
+
+
+-- Migration 27: asset URLs are versioned now, so an ordinary refresh loads the
+-- current page; the legacy 13-argument shape can say so.
+create or replace function public.submit_rsvp(p_event text, p_token text, p_name text, p_attending boolean,
+  p_grp text, p_meal text, p_party int, p_arrival int, p_comp jsonb, p_note text, p_adults int, p_kids int, p_edit text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  raise exception 'This page is out of date. Please refresh it once and send your answer again.';
+end $$;
+
+select pg_notify('pgrst', 'reload schema');
