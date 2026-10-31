@@ -49,8 +49,10 @@ h3{font-size:clamp(20px,2.2vw,26px);font-weight:400;letter-spacing:-.01em}
 .stats small{display:block;font-size:8.5px;letter-spacing:.1em;color:var(--mut)}
 .stats b{font-size:24px;font-weight:400}
 .dots{display:grid;grid-template-columns:repeat(10,1fr);gap:7px;margin-top:22px}
-.dots i{aspect-ratio:1;border-radius:50%;border:1px solid #000;transition:background .4s,transform .4s var(--ease)}
-.dots i.on{background:#000;transform:scale(1.08)}
+.dots i{position:relative;aspect-ratio:1;border-radius:50%;border:1px solid #000;transition:transform .4s var(--ease)}
+.dots i:after{content:"";position:absolute;inset:0;border-radius:50%;background:#000;opacity:0;transition:opacity .4s}
+.dots i.on{transform:scale(1.08)}
+.dots i.on:after{opacity:1}
 [data-split] .w{display:inline-block;overflow:hidden;vertical-align:top;padding:.04em .08em .22em;margin:-.04em -.08em -.22em}
 [data-split] .w span{display:inline-block;transform:translateY(110%);transition:transform 1s var(--ease);transition-delay:calc(var(--i)*.08s + .1s)}
 [data-split].in .w span{transform:none}
