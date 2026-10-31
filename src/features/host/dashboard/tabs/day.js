@@ -1,9 +1,9 @@
-import { $, $$ } from '../../../../lib/ui.js?v=20261101-1';
-import { esc, fmtTime } from '../../../../lib/format.js?v=20261101-1';
-import { stats } from '../stats.js?v=20261101-1';
-import { stat } from '../stats.js?v=20261101-1';
-import { animate } from '../stats.js?v=20261101-1';
-import { toggleIn } from './guests.js?v=20261101-1';
+import { $, $$ } from '../../../../lib/ui.js?v=20261101-2';
+import { esc, fmtTime } from '../../../../lib/format.js?v=20261101-2';
+import { stats } from '../stats.js?v=20261101-2';
+import { stat } from '../stats.js?v=20261101-2';
+import { animate } from '../stats.js?v=20261101-2';
+import { toggleIn } from './guests.js?v=20261101-2';
 
 export function day(p){
   const s=stats(),total=s.heads,pct=total?Math.round(s.arrived/total*100):0,yes=s.yes.slice().sort((a,b)=>(a.arrival||0)-(b.arrival||0));

@@ -1,4 +1,4 @@
-import { API_URL, PUBLISHABLE_KEY } from './config.js?v=20261101-1';
+import { API_URL, PUBLISHABLE_KEY } from './config.js?v=20261101-2';
 
 /** Small fetch wrapper: JSON in, JSON out, friendly errors with status and code attached. */
 export async function request(path, { method = 'GET', body, token, headers = {} } = {}) {

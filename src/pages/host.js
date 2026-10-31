@@ -1,9 +1,9 @@
 // Host app entry: restores the session, then shows the login screen or the events list.
-import { auth } from '../lib/auth.js?v=20261101-1';
-import { rpc } from '../lib/db.js?v=20261101-1';
-import { $, initEffects } from '../lib/ui.js?v=20261101-1';
-import { esc } from '../lib/format.js?v=20261101-1';
-import { navr, state, R } from '../features/host/ctx.js?v=20261101-1';
+import { auth } from '../lib/auth.js?v=20261101-2';
+import { rpc } from '../lib/db.js?v=20261101-2';
+import { $, initEffects } from '../lib/ui.js?v=20261101-2';
+import { esc } from '../lib/format.js?v=20261101-2';
+import { navr, state, R } from '../features/host/ctx.js?v=20261101-2';
 import '../features/host/authView.js';
 import '../features/host/eventsView.js';
 import '../features/host/eventForm.js';
