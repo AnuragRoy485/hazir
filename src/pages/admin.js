@@ -300,14 +300,14 @@ function wireEventViews() {
       <td data-l="Name">${esc(r.name || '')}</td><td data-l="Status">${r.attending ? 'Coming' : 'Declined'}</td>
       <td data-l="Adults">${r.attending ? (r.adults ?? r.party ?? '') : ''}</td><td data-l="Kids">${r.attending ? (r.kids || 0) : ''}</td>
       <td data-l="Group">${esc(r.grp || '')}</td><td data-l="Meal">${esc(r.meal || '')}</td>
-      <td data-l="Arrival">${r.attending && r.arrival != null ? fmtTime(r.arrival) : ''}</td><td data-l="Note">${esc(r.note || '')}</td>
+      <td data-l="Arrival">${r.attending && r.arrival != null ? fmtTime(r.arrival) : ''}</td><td data-l="Note">${esc(r.note || '')}</td><td data-l="Phone">${esc(r.phone || '')}</td><td data-l="Email">${esc(r.email || '')}</td>
       <td><button class="mini" data-er="${r.id}">Edit</button> <button class="mini danger" data-dr="${r.id}">Delete</button></td></tr>`;
     const invRow = i => `<tr><td data-l="Name">${esc(i.name)}</td>
       <td><button class="mini" data-ci="${i.token}">Copy link</button> <button class="mini danger" data-di="${i.id}">Remove</button></td></tr>`;
     detailCard(`<h4>${esc(ev.title || 'Event')}</h4>
       <p class="muted">${esc(ev.occasion || '')} · ${fmtDate(ev.event_date)} · Host: ${esc(ev.host_email || ev.host_name || '')} · ${res.length} answer${res.length === 1 ? '' : 's'}, ${awaiting.length} awaiting</p>
       <div class="linkbox" style="margin-bottom:14px"><input readonly value="${guestLink({ id: ev.id })}"><button class="btn btn-sm" id="adcopy">Copy</button></div>
-      ${res.length ? `<div class="tblwrap"><table class="tbl cardsm"><thead><tr><th>Name</th><th>Status</th><th>Adults</th><th>Kids</th><th>Group</th><th>Meal</th><th>Arrival</th><th>Note</th><th></th></tr></thead>
+      ${res.length ? `<div class="tblwrap"><table class="tbl cardsm"><thead><tr><th>Name</th><th>Status</th><th>Adults</th><th>Kids</th><th>Group</th><th>Meal</th><th>Arrival</th><th>Note</th><th>Phone</th><th>Email</th><th></th></tr></thead>
       <tbody>${res.map(resRow).join('')}</tbody></table></div>` : '<p class="muted">No answers yet.</p>'}
       <h4 style="margin-top:18px">Guest list</h4>
       ${inv.length ? `<div class="tblwrap"><table class="tbl cardsm"><thead><tr><th>Name</th><th></th></tr></thead><tbody>${inv.map(invRow).join('')}</tbody></table></div>` : '<p class="muted">No guests on the list yet.</p>'}
@@ -325,9 +325,11 @@ function wireEventViews() {
         { key: 'grp', label: 'Group', value: r.grp || '', max: 20 },
         { key: 'meal', label: 'Meal', value: r.meal || '', max: 20 },
         { key: 'arrival', label: 'Arrival (minutes after midnight, optional)', value: r.arrival == null ? '' : r.arrival, max: 4, type: 'number' },
-        { key: 'note', label: 'Note', value: r.note || '', max: 120 }]);
+        { key: 'note', label: 'Note', value: r.note || '', max: 120 },
+        { key: 'phone', label: 'Phone', value: r.phone || '', max: 40 },
+        { key: 'email', label: 'Email', value: r.email || '', max: 80 }]);
       if (!out) return;
-      const patch = { name: out.name, attending: /^y/i.test(out.attending.trim()), adults: parseInt(out.adults || '0', 10), kids: parseInt(out.kids || '0', 10), grp: out.grp, meal: out.meal, arrival: out.arrival === '' ? '' : parseInt(out.arrival, 10), note: out.note };
+      const patch = { name: out.name, attending: /^y/i.test(out.attending.trim()), adults: parseInt(out.adults || '0', 10), kids: parseInt(out.kids || '0', 10), grp: out.grp, meal: out.meal, arrival: out.arrival === '' ? '' : parseInt(out.arrival, 10), note: out.note, phone: out.phone, email: out.email };
       try { await rpc('admin_update_response', { p_response_id: r.id, p_patch: patch }); toast('Answer updated'); reload(); }
       catch (e) { toast(e.message || 'Update failed', 1); }
     });

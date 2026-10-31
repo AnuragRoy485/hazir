@@ -311,3 +311,9 @@ html.fx .wipe.in .wipe-i{clip-path:inset(-12% -3% -12% 0)}
 .contact .field textarea{font-size:17px}
 .contact .banner{margin:14px 0 0}
 @media(max-width:900px){.contact-grid{grid-template-columns:1fr}}
+
+/* Guest contact fields: country-code select beside the number */
+.ph{display:flex;gap:14px;margin-top:6px}
+.ph .dd,.ph select{flex:0 1 46%;min-width:0}
+.ph input{flex:1 1 auto;min-width:0}
+.ph select,.ph .dd-btn,.ph input{margin-top:0}

@@ -4,9 +4,9 @@ import { xlsxDownload } from '../../../lib/xlsx.js';
 import { state } from '../ctx.js';
 import { stats } from './stats.js';
 
-function rows(){const s=stats(),L=[['Name','Status','Party','Adults','Kids','Group','Meal','Companions','Arrival','Checked in','Note','Personal link']];
-  state.res.forEach(r=>{const inv=state.inv.find(i=>i.id===r.invitee_id);L.push([r.name,r.attending?'Coming':'Declined',r.party,r.attending?(r.adults!=null?r.adults:r.party):'',r.attending?(r.kids||0):'',r.grp||'',r.meal||'',(r.companions||[]).map(c=>(c.n||'Guest')+' ('+(c.m||'')+')').join('; '),r.attending?fmtTime(r.arrival):'',r.checked_in?'Yes':'',r.note||'',inv?guestLink(state.ev,inv.token):''])});
-  s.awaitingNames.forEach(i=>L.push([i.name,'Awaiting','','','','','','','','','',guestLink(state.ev,i.token)]));
+function rows(){const s=stats(),L=[['Name','Status','Party','Adults','Kids','Group','Meal','Companions','Arrival','Checked in','Note','Phone','Email','Personal link']];
+  state.res.forEach(r=>{const inv=state.inv.find(i=>i.id===r.invitee_id);L.push([r.name,r.attending?'Coming':'Declined',r.party,r.attending?(r.adults!=null?r.adults:r.party):'',r.attending?(r.kids||0):'',r.grp||'',r.meal||'',(r.companions||[]).map(c=>(c.n||'Guest')+' ('+(c.m||'')+')').join('; '),r.attending?fmtTime(r.arrival):'',r.checked_in?'Yes':'',r.note||'',r.phone||'',r.email||'',inv?guestLink(state.ev,inv.token):''])});
+  s.awaitingNames.forEach(i=>L.push([i.name,'Awaiting','','','','','','','','','','','',guestLink(state.ev,i.token)]));
   return L}
 
 const fname=ext=>state.ev.title.replace(/\W+/g,'-').toLowerCase()+'-guests.'+ext;

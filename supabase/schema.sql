@@ -1389,3 +1389,133 @@ begin
         (e.banner is not null) as has_banner
       from public.events e order by e.created_at desc limit 200) v));
 end $$;
+
+
+-- Migration 25: guests can leave an optional phone number (with country code,
+-- validated per country on the guest page) and email address. Both are stored
+-- on the response and visible only to the host and the site admin; the invite
+-- payload (get_invite) never returns them. Editing an answer without retyping
+-- them keeps the stored values. The old 13-argument submit_rsvp stays as a
+-- wrapper so pages cached before this change keep working.
+alter table public.responses
+  add column if not exists phone text,
+  add column if not exists email text;
+
+create or replace function public.submit_rsvp(p_event text, p_token text, p_name text, p_attending boolean,
+  p_grp text, p_meal text, p_party int, p_arrival int, p_comp jsonb, p_note text, p_adults int, p_kids int, p_edit text,
+  p_phone text, p_email text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare e events; inv invitees; cnt int; v_ip text; hdr jsonb; n int; v_adults int; v_kids int; me responses; v_edit text; v_comp jsonb;
+begin
+  select * into e from events where id = p_event;
+  if not found then raise exception 'Event not found'; end if;
+  if public.rsvp_is_closed(e) then raise exception 'RSVPs are closed'; end if;
+  if p_token is not null and p_token <> '' then
+    select * into inv from invitees where event_id = e.id and token = p_token;
+    if not found then raise exception 'This invitation link is not valid'; end if;
+  end if;
+  if p_edit is not null and p_edit <> '' then
+    select * into me from responses where event_id = e.id and edit_token = p_edit;
+    if not found then raise exception 'This invitation link is not valid'; end if;
+  end if;
+
+  -- Abuse limits (best effort, see docs/SECURITY.md): per connection, per open link, per personal link.
+  begin hdr := nullif(current_setting('request.headers', true), '')::jsonb; exception when others then hdr := null; end;
+  -- Edge-set headers only: cf-connecting-ip (a spoofed copy is rejected by the edge), then sb-forwarded-for, then the LAST x-forwarded-for entry. Never the first entry, which callers can fake.
+  v_ip := md5(coalesce(nullif(trim(hdr->>'cf-connecting-ip'), ''), nullif(trim(hdr->>'sb-forwarded-for'), ''), nullif(trim(regexp_replace(coalesce(hdr->>'x-forwarded-for', ''), '^.*,', '')), ''), 'unknown'));
+  perform pg_advisory_xact_lock(hashtext('rsvp:' || e.id));
+  if random() < 0.05 then delete from rsvp_hits where at < now() - interval '2 hours'; end if;
+  select count(*) into n from rsvp_hits where event_id = e.id and ip = v_ip and at > now() - interval '10 minutes';
+  if n >= 150 then raise exception 'Too many answers from this connection. Please wait a few minutes and try again.'; end if;
+  if inv.id is null and me.id is null then
+    select count(*) into n from rsvp_hits where event_id = e.id and not has_token and at > now() - interval '10 minutes';
+    if n >= 300 then raise exception 'This event is getting a lot of answers right now. Please try again shortly.'; end if;
+  else
+    select count(*) into n from rsvp_hits where event_id = e.id and token = coalesce(inv.token, p_edit) and at > now() - interval '10 minutes';
+    if n >= 8 then raise exception 'You have changed this answer many times. Please wait a few minutes.'; end if;
+  end if;
+  insert into rsvp_hits(event_id, ip, has_token, token) values (e.id, v_ip, inv.id is not null or me.id is not null, coalesce(inv.token, p_edit));
+
+  select count(*) into cnt from responses where event_id = e.id;
+  if cnt >= 6000 then raise exception 'This event is full'; end if;
+  -- Adults at least 1 when attending; kids trimmed first if the party passes the host's limit.
+  v_adults := case when p_attending then least(e.max_party, 10, greatest(1, coalesce(p_adults, p_party, 1))) else 0 end;
+  v_kids := case when p_attending then least(10, greatest(0, coalesce(p_kids, 0))) else 0 end;
+  if p_attending and v_adults + v_kids > e.max_party then v_kids := e.max_party - v_adults; end if;
+  -- Host switches: hidden questions are not collected, but earlier answers stay stored.
+  v_comp := case when jsonb_typeof(p_comp) = 'array' then p_comp else '[]'::jsonb end;
+  if not e.ask_meal then
+    select coalesce(jsonb_agg(c - 'm'), '[]'::jsonb) into v_comp from jsonb_array_elements(v_comp) c;
+  end if;
+  if inv.id is not null then delete from responses where invitee_id = inv.id; end if;
+  if me.id is not null then delete from responses where id = me.id; end if;
+  insert into responses(event_id, invitee_id, name, attending, grp, meal, party, adults, kids, arrival, companions, note, phone, email)
+  values (e.id, inv.id, left(coalesce(nullif(trim(p_name), ''), inv.name, me.name, 'Guest'), 40), p_attending,
+    left(p_grp, 20), case when e.ask_meal then left(p_meal, 20) else null end,
+    case when p_attending then v_adults + v_kids else 0 end, v_adults, v_kids,
+    case when p_attending and e.ask_arrival then p_arrival else null end,
+    v_comp, case when e.ask_note then left(p_note, 120) else null end,
+    coalesce(nullif(left(trim(coalesce(p_phone, '')), 40), ''), me.phone),
+    coalesce(nullif(left(trim(coalesce(p_email, '')), 80), ''), me.email))
+  returning edit_token into v_edit;
+  return jsonb_build_object('ok', true, 'edit', v_edit);
+end $$;
+
+-- Cached pages from before this migration still call the 13-argument shape.
+create or replace function public.submit_rsvp(p_event text, p_token text, p_name text, p_attending boolean,
+  p_grp text, p_meal text, p_party int, p_arrival int, p_comp jsonb, p_note text, p_adults int, p_kids int, p_edit text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  return public.submit_rsvp(p_event, p_token, p_name, p_attending, p_grp, p_meal, p_party, p_arrival, p_comp, p_note, p_adults, p_kids, p_edit, null, null);
+end $$;
+
+revoke all on function public.submit_rsvp(text, text, text, boolean, text, text, int, int, jsonb, text, int, int, text, text, text) from public;
+grant execute on function public.submit_rsvp(text, text, text, boolean, text, text, int, int, jsonb, text, int, int, text, text, text) to anon, authenticated;
+
+create or replace function public.admin_update_response(p_response_id uuid, p_patch jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_res public.responses; v_title text;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  select * into v_res from public.responses where id = p_response_id;
+  if v_res.id is null then raise exception 'answer not found'; end if;
+  update public.responses set
+    name = case when p_patch ? 'name' then left(trim(p_patch->>'name'),40) else name end,
+    attending = case when p_patch ? 'attending' then (p_patch->>'attending')::boolean else attending end,
+    adults = case when p_patch ? 'adults' then greatest(0, least(10, (p_patch->>'adults')::int)) else adults end,
+    kids = case when p_patch ? 'kids' then greatest(0, least(10, (p_patch->>'kids')::int)) else kids end,
+    party = case when p_patch ? 'adults' or p_patch ? 'kids'
+      then greatest(0, least(10, (coalesce(nullif(p_patch->>'adults','')::int, adults)))) + greatest(0, least(10, (coalesce(nullif(p_patch->>'kids','')::int, kids))))
+      else party end,
+    grp = case when p_patch ? 'grp' then nullif(left(trim(p_patch->>'grp'),20),'') else grp end,
+    meal = case when p_patch ? 'meal' then nullif(left(trim(p_patch->>'meal'),20),'') else meal end,
+    arrival = case when p_patch ? 'arrival' then nullif(p_patch->>'arrival','')::int else arrival end,
+    note = case when p_patch ? 'note' then nullif(left(trim(p_patch->>'note'),120),'') else note end,
+    phone = case when p_patch ? 'phone' then nullif(left(trim(p_patch->>'phone'),40),'') else phone end,
+    email = case when p_patch ? 'email' then nullif(left(trim(p_patch->>'email'),80),'') else email end
+  where id = p_response_id;
+  select title into v_title from public.events where id = v_res.event_id;
+  insert into public.admin_audit_log (actor, action, detail)
+    values (v_uid, 'admin_update_response', jsonb_build_object('event', v_title, 'guest', v_res.name));
+end $$;
+
+create or replace function public.admin_event_detail(p_event_id text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_ev public.events;
+begin
+  if v_uid is null or not public.is_admin() then raise exception 'not authorized'; end if;
+  select * into v_ev from public.events where id = p_event_id;
+  if v_ev.id is null then raise exception 'event not found'; end if;
+  insert into public.admin_audit_log (actor, action, detail) values (v_uid, 'admin_view_event', jsonb_build_object('title', v_ev.title));
+  return jsonb_build_object(
+    'event', jsonb_build_object('id', v_ev.id, 'title', v_ev.title, 'occasion', v_ev.occasion,
+      'event_date', v_ev.event_date, 'host_name', v_ev.host_name, 'created_at', v_ev.created_at,
+      'host_email', (select email from auth.users where id = v_ev.owner)),
+    'invitees', (select coalesce(jsonb_agg(i order by i.name), '[]'::jsonb) from (
+      select id, name, token from public.invitees where event_id = p_event_id) i),
+    'responses', (select coalesce(jsonb_agg(r order by r.created_at desc), '[]'::jsonb) from (
+      select id, name, attending, party, adults, kids, grp, meal, arrival, note, phone, email, checked_in, created_at
+      from public.responses where event_id = p_event_id) r));
+end $$;
+
+select pg_notify('pgrst', 'reload schema');

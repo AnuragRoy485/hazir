@@ -2,6 +2,7 @@
 import { rpc } from '../lib/db.js';
 import { $, $$, initEffects, copy } from '../lib/ui.js';
 import { esc, fmtTime, fmtDate, fmtDeadline, MEALS } from '../lib/format.js';
+import { parsePhone, ccOptions, DEF_ISO } from '../lib/countries.js';
 
 const root=$('#root'),q=new URLSearchParams(location.search),eid=q.get('e'),tok=q.get('t')||'';let edit=q.get('r')||'';
 initEffects();
@@ -26,6 +27,8 @@ const msgCard=(h,p)=>root.innerHTML=`<div class="card reveal in center"><h2>${h}
     <form id="f" novalidate>
       <div class="yn"><button type="button" class="yb ${att?'on':''}" data-a="1">Yes, I will be there</button><button type="button" class="yb ${!att?'on':''}" data-a="0">Sorry, I cannot</button></div>
       ${ev.invitee_name?'':'<label class="field">Your name<input id="n" maxlength="40" autocomplete="name" required></label>'}
+      <label class="field">Phone (optional)<span class="ph"><select id="pc" aria-label="Country code">${ccOptions(DEF_ISO)}</select><input id="ph" type="tel" maxlength="20" autocomplete="tel-national" placeholder="Phone number"></span></label>
+      <label class="field">Email (optional)<input id="em" type="email" maxlength="80" autocomplete="email" placeholder="you@example.com"></label>
       <div id="more" ${att?'':'hidden'}>
         ${ev.ask_meal!==false?`<label class="field">Your meal<select id="m">${MEALS.map(x=>`<option${x===ev.my_meal?' selected':''}>${x}</option>`).join('')}</select></label>`:''}
         <div class="two">
@@ -51,8 +54,11 @@ const msgCard=(h,p)=>root.innerHTML=`<div class="card reveal in center"><h2>${h}
     const tr=$('#tr');if(tr)tr.oninput=e=>{arrival=+e.target.value;$('#tv').textContent=fmtTime(arrival)};
     $('#f').onsubmit=async e=>{e.preventDefault();const m=$('#msg'),b=$('#sb');m.hidden=true;
       const name=ev.invitee_name||($('#n')&&$('#n').value.trim());if(!name){m.hidden=false;m.textContent='Please enter your name.';return}
+      let phone=null,email=null;const phRaw=$('#ph')?$('#ph').value.trim():'';
+      if(phRaw){const iso=$('#pc')?$('#pc').value:'';if(!iso){m.hidden=false;m.textContent='Pick the country code for your phone number.';return}const pp=parsePhone(phRaw,iso);if(!pp){m.hidden=false;m.textContent='That phone number does not look right for the selected country.';return}phone=pp.number}
+      const emRaw=$('#em')?$('#em').value.trim():'';if(emRaw){if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emRaw)){m.hidden=false;m.textContent='That email address does not look right.';return}email=emRaw}
       b.disabled=true;b.textContent='Sending...';
-      try{const nt=$('#nt');const note=nt?(nt.value.trim()||null):null;const r=await rpc('submit_rsvp',{p_event:eid,p_token:tok||null,p_name:name,p_attending:att,p_grp:null,p_meal:att&&ev.ask_meal!==false?$('#m').value:null,p_party:att?party():0,p_arrival:att&&ev.ask_arrival!==false?arrival:null,p_comp:att?comps.map((c,i)=>({n:(c.n||'Guest').slice(0,40),m:ev.ask_meal!==false?c.m:null,k:i<adults-1?'a':'k'})):[],p_note:note,p_adults:att?adults:0,p_kids:att?kids:0,p_edit:edit||null});
+      try{const nt=$('#nt');const note=nt?(nt.value.trim()||null):null;const r=await rpc('submit_rsvp',{p_event:eid,p_token:tok||null,p_name:name,p_attending:att,p_grp:null,p_meal:att&&ev.ask_meal!==false?$('#m').value:null,p_party:att?party():0,p_arrival:att&&ev.ask_arrival!==false?arrival:null,p_comp:att?comps.map((c,i)=>({n:(c.n||'Guest').slice(0,40),m:ev.ask_meal!==false?c.m:null,k:i<adults-1?'a':'k'})):[],p_note:note,p_phone:phone,p_email:email,p_adults:att?adults:0,p_kids:att?kids:0,p_edit:edit||null});
         const keep=tok?`${location.origin}/rsvp?e=${eid}&t=${tok}`:`${location.origin}/rsvp?e=${eid}&r=${r.edit}`;
         root.innerHTML=`<div class="card reveal in center rsvpdone"><div class="tick">&#10003;</div><h2>${att?'See you there.':'Thank you for letting us know.'}</h2><p class="muted">${att?`We have you down for ${party()} ${party()>1?'people':'person'}${kids?` (${adults} ${adults>1?'adults':'adult'}, ${kids} ${kids>1?'kids':'kid'})`:''}${ev.ask_arrival!==false?` around ${fmtTime(arrival)}`:''}.`:'Your host has been told.'}</p>
         <div class="savebox"><p class="saveline"><b>Plans change. Keep your RSVP handy.</b><br>Save this link to update your answer anytime.</p>

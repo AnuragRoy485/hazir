@@ -1,4 +1,5 @@
 import { request } from '../lib/http.js';
+import { parsePhone, ccOptions, DEF_ISO } from '../lib/countries.js';
 (()=>{
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -55,6 +56,8 @@ function guestForm(box,ev,st,o={}){
   ${ev.dead?`<p class="banner${closed?' warn':''}">${closed?'RSVPs closed on ':'Please answer by '}${fdate(ev.dead)}.</p>`:''}
   ${closed?'':`<div class="yn"><button class="vy" aria-pressed="false">Yes</button><button class="vn" aria-pressed="false">No</button></div>
   <div class="more"><label class="field">Your name<input class="vname" maxlength="40" value="${esc(inv)}" placeholder="Your name"></label>
+  <label class="field">Phone (optional)<span class="ph"><select class="vpc" aria-label="Country code">${ccOptions(DEF_ISO)}</select><input class="vph" type="tel" maxlength="20" placeholder="Phone number"></span></label>
+  <label class="field">Email (optional)<input class="vem" type="email" maxlength="80" placeholder="you@example.com"></label>
   <div class="yes-only"><label class="field">Your meal<select class="vmeal">${opt(MEALS)}</select></label>
   <div class="field"><span>How many are coming, including you</span><div class="stepper"><button class="mi" type="button" aria-label="Fewer">-</button><b class="vp">1</b><button class="pl" type="button" aria-label="More">+</button></div></div>
   <div class="comps"></div>
@@ -69,7 +72,11 @@ function guestForm(box,ev,st,o={}){
   const pk=c=>{ch=c;q('.vy').setAttribute('aria-pressed',c==='y');q('.vn').setAttribute('aria-pressed',c==='n');q('.more').classList.add('open');q('.yes-only').style.display=c==='y'?'':'none';q('.done').hidden=true};
   q('.vy').onclick=()=>pk('y');q('.vn').onclick=()=>pk('n');
   q('.pl').onclick=()=>{p=Math.min(max,p+1);q('.vp').textContent=p;drawComp()};q('.mi').onclick=()=>{p=Math.max(1,p-1);q('.vp').textContent=p;drawComp()};
-  q('.vs').onclick=()=>{if(!ch)return;const n=q('.vname').value.trim()||'Guest';const r={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),n,y:ch==='y',note:q('.vnote').value.trim(),ts:Date.now()};if(o.gid!=null)r.gid=o.gid;
+  q('.vs').onclick=()=>{if(!ch)return;const n=q('.vname').value.trim()||'Guest';const dn=q('.done');
+    const phv=q('.vph')?q('.vph').value.trim():'';let ph='',em='';
+    if(phv){const iso=q('.vpc').value;if(!iso){dn.hidden=false;dn.textContent='Pick the country code for your phone number.';return}const pp=parsePhone(phv,iso);if(!pp){dn.hidden=false;dn.textContent='That phone number does not look right for the selected country.';return}ph=pp.number}
+    const emv=q('.vem')?q('.vem').value.trim():'';if(emv){if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emv)){dn.hidden=false;dn.textContent='That email address does not look right.';return}em=emv}
+    const r={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),n,y:ch==='y',note:q('.vnote').value.trim(),ts:Date.now()};if(ph)r.ph=ph;if(em)r.em=em;if(o.gid!=null)r.gid=o.gid;
     if(r.y){r.p=p;r.t=clk.get();r.m=q('.vmeal').value;r.c=Array.from({length:p-1},(_,i)=>({n:(comp[i]||{}).n||`${n}'s guest ${i+2}`,m:(comp[i]||{}).m||'Veg'}))}else{r.p=0;r.t=0;r.m='';r.c=[]}
     let a=st.get();if(r.gid!=null)a=a.filter(x=>x.gid!==r.gid);st.set([...a,r]);o.onSent&&o.onSent(r);const d=q('.done');d.hidden=false;d.textContent=r.y?`Thank you, ${n}. We will see ${r.p} of you at ${fmt(r.t)}.`:`Thank you, ${n}. Your answer is recorded.`};
 }
@@ -96,14 +103,14 @@ function board(box,ev,st,o={}){
     const b={};yes.forEach(r=>{const h=Math.floor(r.t/60);b[h]=(b[h]||0)+r.p});const hs=Object.keys(b).map(Number).sort((x,y)=>x-y),mx=Math.max(1,...Object.values(b));
     q('.hist').innerHTML=hs.map(h=>`<i style="height:${b[h]/mx*100}%"><span>${fmt(h*60).replace(':00','')}</span></i>`).join('');
     const rows=a.filter(r=>(flt.s==='all'||(flt.s==='y')===r.y)&&(flt.g==='all'||r.g===flt.g)&&(flt.m==='all'||r.m===flt.m||(r.c||[]).some(c=>c.m===flt.m))&&(!flt.q||(r.n+' '+(r.c||[]).map(c=>c.n).join(' ')).toLowerCase().includes(flt.q))).slice().reverse();
-    q('.list').innerHTML=rows.length?rows.slice(0,60).map(r=>`<li><div>${esc(r.n)}${r.y&&r.p>1?' +'+(r.p-1):''}<small>${esc(r.g||'')}${r.m?' · '+r.m:''}${r.note?' · "'+esc(r.note)+'"':''}</small></div><div style="text-align:right">${r.y?r.p+' at '+fmt(r.t):'Not coming'}${o.host?`<br><button class="rm" data-id="${r.id}" aria-label="Remove">×</button>`:''}</div></li>`).join(''):'<li class="note">No guests match.</li>';
+    q('.list').innerHTML=rows.length?rows.slice(0,60).map(r=>`<li><div>${esc(r.n)}${r.y&&r.p>1?' +'+(r.p-1):''}<small>${esc(r.g||'')}${r.m?' · '+r.m:''}${r.ph?' · '+esc(r.ph):''}${r.em?' · '+esc(r.em):''}${r.note?' · "'+esc(r.note)+'"':''}</small></div><div style="text-align:right">${r.y?r.p+' at '+fmt(r.t):'Not coming'}${o.host?`<br><button class="rm" data-id="${r.id}" aria-label="Remove">×</button>`:''}</div></li>`).join(''):'<li class="note">No guests match.</li>';
     q('.list').querySelectorAll('.rm').forEach(x=>x.onclick=()=>{st.set(st.get().filter(r=>r.id!==x.dataset.id));draw()});
     if(ev.names&&ev.names.length){const done=new Set(a.map(r=>r.gid));const pend=ev.names.map((n,i)=>({n,i})).filter(x=>!done.has(x.i));
       const base=location.href.split('#')[0];q('.pw').innerHTML=pend.length?`<div class="pend"><p class="tiny">STILL TO ANSWER (${pend.length})${ev.dead?' · by '+fdate(ev.dead):''}</p><ul style="list-style:none">${pend.slice(0,40).map(x=>`<li><span>${esc(x.n)}</span><a href="#" class="cp" data-i="${x.i}">Copy reminder</a></li>`).join('')}</ul></div>`:'<p class="banner">Everyone has answered.</p>';
       q('.pw').querySelectorAll('.cp').forEach(x=>x.onclick=async e=>{e.preventDefault();const n=ev.names[x.dataset.i];const link=base+'#/g/'+o.code+'/'+x.dataset.i;const msg=`Hi ${n.split(' ')[0]}, please RSVP for ${ev.n}${ev.dead?' by '+fdate(ev.dead):''}: ${link}`;try{await navigator.clipboard.writeText(msg);x.textContent='Copied'}catch{prompt('Copy this message',msg)}setTimeout(()=>x.textContent='Copy reminder',1800)})}
   };
   q('.fq').oninput=e=>{flt.q=e.target.value.toLowerCase();draw()};q('.fs').onchange=e=>{flt.s=e.target.value;draw()};q('.fg').onchange=e=>{flt.g=e.target.value;draw()};q('.fm').onchange=e=>{flt.m=e.target.value;draw()};
-  q('.ex').onclick=()=>{const a=st.get();const rows=[['Name','Answer','Group','Party size','Meal','Arrival','Companions','Note']];a.forEach(r=>rows.push([r.n,r.y?'Yes':'No',r.g||'',r.p,r.m||'',r.y?fmt(r.t):'',(r.c||[]).map(c=>c.n+' ('+c.m+')').join('; '),r.note||'']));const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));l.download=(ev.n||'guests').replace(/\W+/g,'-')+'.csv';l.click()};
+  q('.ex').onclick=()=>{const a=st.get();const rows=[['Name','Answer','Group','Party size','Meal','Arrival','Companions','Phone','Email','Note']];a.forEach(r=>rows.push([r.n,r.y?'Yes':'No',r.g||'',r.p,r.m||'',r.y?fmt(r.t):'',(r.c||[]).map(c=>c.n+' ('+c.m+')').join('; '),r.ph||'',r.em||'',r.note||'']));const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));l.download=(ev.n||'guests').replace(/\W+/g,'-')+'.csv';l.click()};
   if(o.reset)q('.rs').onclick=o.reset;
   if(o.walk)q('.wk').onclick=()=>{const n=prompt('Walk-in guest name');if(!n)return;const c=+prompt('How many people?','1')||1;const a=st.get();a.push({id:'w'+Date.now(),n,y:true,g:'Other',p:c,t:ev.time||19*60,m:'Veg',c:[],ts:Date.now()});st.set(a);draw()};
   draw();return{draw};
