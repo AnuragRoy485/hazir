@@ -228,6 +228,9 @@ function editEventFull(ov, id, again) {
     <label class="field">Message to guests (optional)<textarea id="ef-msg" rows="3">${esc(ev.message || '')}</textarea></label>
     <div class="two"><label class="field">Usual arrival time<input id="ef-time" type="time" value="${hm(ev.default_time)}"></label>
     <label class="field">RSVPs<select id="ef-closed"><option value="open"${!ev.rsvp_closed ? ' selected' : ''}>Open</option><option value="closed"${ev.rsvp_closed ? ' selected' : ''}>Closed</option></select></label></div>
+    <div class="two"><label class="field">Meal question<select id="ef-askm"><option value="ask"${ev.ask_meal !== false ? ' selected' : ''}>Ask</option><option value="skip"${ev.ask_meal === false ? ' selected' : ''}>Skip</option></select></label>
+    <label class="field">Arrival-time question<select id="ef-aska"><option value="ask"${ev.ask_arrival !== false ? ' selected' : ''}>Ask</option><option value="skip"${ev.ask_arrival === false ? ' selected' : ''}>Skip</option></select></label></div>
+    <label class="field">Note question<select id="ef-askn"><option value="ask"${ev.ask_note !== false ? ' selected' : ''}>Ask</option><option value="skip"${ev.ask_note === false ? ' selected' : ''}>Skip</option></select></label>
     <label class="field">Event banner (optional)
       <input id="ef-bn" type="file" accept="${BANNER_TYPES.join(',')}" hidden>
       <span class="bnbox" id="ef-bnbox" tabindex="0" role="button" aria-label="Event banner. Activate to choose an image; when one is set, change or remove it."><img id="ef-bnimg" alt="Event banner preview" ${ev.banner ? `src="${esc(ev.banner)}"` : ''} ${ev.banner ? '' : 'hidden'}><span class="bnph" id="ef-bnph" ${ev.banner ? 'hidden' : ''}>Choose an image</span><span class="bnact" id="ef-bnact" ${ev.banner ? '' : 'hidden'}><button type="button" class="mini" id="ef-bnchg">Change banner</button><button type="button" class="mini" id="ef-bnrem">Remove banner</button></span></span><small class="muted" style="display:block;margin-top:6px">Exact fit: 1200 x 630 px. After choosing a photo, drag and zoom it in the frame to crop it perfectly.</small>
@@ -264,7 +267,8 @@ function editEventFull(ov, id, again) {
       invited: parseInt(v('ef-invited') || '100', 10), venue: v('ef-venue'), max_party: parseInt(v('ef-maxp'), 10),
       message: v('ef-msg'), default_time: (() => { const [h, m] = v('ef-time').split(':').map(Number); return (h || 0) * 60 + (m || 0); })(),
       deadline_at: v('ef-dld') ? zonedToIso(v('ef-dld'), v('ef-dlt') || '23:59', v('ef-tz')) : '',
-      tz: v('ef-tz'), rsvp_closed: v('ef-closed') === 'closed'
+      tz: v('ef-tz'), rsvp_closed: v('ef-closed') === 'closed',
+      ask_meal: v('ef-askm') === 'ask', ask_arrival: v('ef-aska') === 'ask', ask_note: v('ef-askn') === 'ask'
     };
     try {
       if (bfile) {
