@@ -1,5 +1,5 @@
-import { request } from '../lib/http.js?v=20261101-4';
-import { parsePhone, ccOptions, DEF_ISO, bindPhone } from '../lib/countries.js?v=20261101-4';
+import { request } from '../lib/http.js?v=20261101-5';
+import { parsePhone, ccOptions, DEF_ISO, bindPhone } from '../lib/countries.js?v=20261101-5';
 (()=>{
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -29,7 +29,15 @@ $$('.magnetic').forEach(b=>{if(reduce)return;b.addEventListener('pointermove',e=
 // ---------- hero dots
 const dots=$('#heroDots');for(let i=0;i<30;i++)dots.append(document.createElement('i'));
 let hc=0;const hd=[...dots.children];
-setInterval(()=>{hc=hc>=30?0:hc+1;hd.forEach((d,i)=>d.classList.toggle('on',i<hc));const conf=Math.round(hc/30*249);$('#heroConfirmed').textContent=conf;$('#heroPending').textContent=400-conf},520);
+const tick=()=>{hc=hc>=30?0:hc+1;if(hc===0)hd.forEach(d=>d.classList.remove('on'));else hd[hc-1].classList.add('on');const conf=Math.round(hc/30*249);$('#heroConfirmed').textContent=conf;$('#heroPending').textContent=400-conf};
+// Run the demo counter only while the hero is actually on screen: every tick
+// repaints, so an always-on interval keeps costing frames after the hero is
+// scrolled past. Identical cadence and sequence while visible.
+let dotTimer=null;
+const dotsStart=()=>{if(!dotTimer)dotTimer=setInterval(tick,520)};
+const dotsStop=()=>{clearInterval(dotTimer);dotTimer=null};
+new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting&&!document.hidden)dotsStart();else dotsStop()}),{threshold:.05}).observe(dots);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)dotsStop();else{const r=dots.getBoundingClientRect();if(r.bottom>0&&r.top<innerHeight)dotsStart()}});
 
 // ---------- shared helpers
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

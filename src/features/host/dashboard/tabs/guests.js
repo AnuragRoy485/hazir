@@ -1,12 +1,12 @@
-import { csv, xlsx } from '../csv.js?v=20261101-4';
-import { addGuest } from '../addGuest.js?v=20261101-4';
-import { db } from '../../../../lib/db.js?v=20261101-4';
-import { $, $$, toast, confirmBox } from '../../../../lib/ui.js?v=20261101-4';
-import { esc, fmtTime } from '../../../../lib/format.js?v=20261101-4';
-import { state, niceErr } from '../../ctx.js?v=20261101-4';
-import { stats } from '../stats.js?v=20261101-4';
-import { nudge } from '../nudge.js?v=20261101-4';
-import { R } from '../../ctx.js?v=20261101-4';
+import { csv, xlsx } from '../csv.js?v=20261101-5';
+import { addGuest } from '../addGuest.js?v=20261101-5';
+import { db } from '../../../../lib/db.js?v=20261101-5';
+import { $, $$, toast, confirmBox } from '../../../../lib/ui.js?v=20261101-5';
+import { esc, fmtTime } from '../../../../lib/format.js?v=20261101-5';
+import { state, niceErr } from '../../ctx.js?v=20261101-5';
+import { stats } from '../stats.js?v=20261101-5';
+import { nudge } from '../nudge.js?v=20261101-5';
+import { R } from '../../ctx.js?v=20261101-5';
 
 export function rows(){const {res,inv}=state,s=stats(),q=state.q.toLowerCase();
   let out=res.map(r=>({r,name:r.name,st:r.attending?'yes':'no'}));

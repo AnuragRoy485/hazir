@@ -1,12 +1,12 @@
-import { db } from '../../../lib/db.js?v=20261101-4';
-import { $, $$, toast } from '../../../lib/ui.js?v=20261101-4';
-import { esc, fmtDate } from '../../../lib/format.js?v=20261101-4';
-import { state, view, niceErr } from '../ctx.js?v=20261101-4';
-import { R } from '../ctx.js?v=20261101-4';
-import { overview } from './tabs/overview.js?v=20261101-4';
-import { guests } from './tabs/guests.js?v=20261101-4';
-import { share } from './tabs/share.js?v=20261101-4';
-import { day } from './tabs/day.js?v=20261101-4';
+import { db } from '../../../lib/db.js?v=20261101-5';
+import { $, $$, toast } from '../../../lib/ui.js?v=20261101-5';
+import { esc, fmtDate } from '../../../lib/format.js?v=20261101-5';
+import { state, view, niceErr } from '../ctx.js?v=20261101-5';
+import { R } from '../ctx.js?v=20261101-5';
+import { overview } from './tabs/overview.js?v=20261101-5';
+import { guests } from './tabs/guests.js?v=20261101-5';
+import { share } from './tabs/share.js?v=20261101-5';
+import { day } from './tabs/day.js?v=20261101-5';
 
 export async function load(id){
   const [ev,inv,res]=await Promise.all([db('events?select=*&id=eq.'+id),db('invitees?select=*&event_id=eq.'+id+'&order=name.asc'),db('responses?select=*&event_id=eq.'+id+'&order=created_at.desc')]);

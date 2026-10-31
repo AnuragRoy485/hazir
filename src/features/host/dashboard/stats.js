@@ -1,5 +1,5 @@
-import { $, $$, countTo } from '../../../lib/ui.js?v=20261101-4';
-import { state } from '../ctx.js?v=20261101-4';
+import { $, $$, countTo } from '../../../lib/ui.js?v=20261101-5';
+import { state } from '../ctx.js?v=20261101-5';
 
 export const stats=()=>{const {ev,res,inv}=state;const yes=res.filter(r=>r.attending),no=res.filter(r=>!r.attending);
   const heads=yes.reduce((a,r)=>a+r.party,0);

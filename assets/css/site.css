@@ -318,7 +318,7 @@ html.fx .wipe.in .wipe-i{clip-path:inset(-12% -3% -12% 0)}
 .ph input{flex:1 1 auto;min-width:0}
 .ph select,.ph .dd-btn,.ph input{margin-top:0}
 /* Flag sprite: one PNG for every country code, no OS emoji needed */
-.flg{display:inline-block;width:24px;height:18px;flex:0 0 auto;background-image:url(/assets/vendor/flags.png?v=20261101-4);background-size:384px 288px;background-repeat:no-repeat;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+.flg{display:inline-block;width:24px;height:18px;flex:0 0 auto;background-image:url(/assets/vendor/flags.png?v=20261101-5);background-size:384px 288px;background-repeat:no-repeat;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
 .flg-af{background-position:-0px -0px}
 .flg-ax{background-position:-24px -0px}
 .flg-al{background-position:-48px -0px}

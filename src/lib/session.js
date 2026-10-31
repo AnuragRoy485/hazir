@@ -1,5 +1,5 @@
-import { SESSION_KEY } from './config.js?v=20261101-4';
-import { request } from './http.js?v=20261101-4';
+import { SESSION_KEY } from './config.js?v=20261101-5';
+import { request } from './http.js?v=20261101-5';
 
 let session = null;
 try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { /* corrupt storage: start signed out */ }

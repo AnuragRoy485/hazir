@@ -1,10 +1,10 @@
-import { auth } from '../../lib/auth.js?v=20261101-4';
-import { db } from '../../lib/db.js?v=20261101-4';
-import { $, $$ } from '../../lib/ui.js?v=20261101-4';
-import { calendar } from './calendar.js?v=20261101-4';
-import { esc, fmtDate } from '../../lib/format.js?v=20261101-4';
-import { state, view, niceErr } from './ctx.js?v=20261101-4';
-import { R } from './ctx.js?v=20261101-4';
+import { auth } from '../../lib/auth.js?v=20261101-5';
+import { db } from '../../lib/db.js?v=20261101-5';
+import { $, $$ } from '../../lib/ui.js?v=20261101-5';
+import { calendar } from './calendar.js?v=20261101-5';
+import { esc, fmtDate } from '../../lib/format.js?v=20261101-5';
+import { state, view, niceErr } from './ctx.js?v=20261101-5';
+import { R } from './ctx.js?v=20261101-5';
 
 export async function listView(){
   clearInterval(state.timer);state.ev=null;

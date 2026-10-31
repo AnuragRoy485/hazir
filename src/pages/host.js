@@ -1,13 +1,13 @@
 // Host app entry: restores the session, then shows the login screen or the events list.
-import { auth } from '../lib/auth.js?v=20261101-4';
-import { rpc } from '../lib/db.js?v=20261101-4';
-import { $, initEffects } from '../lib/ui.js?v=20261101-4';
-import { esc } from '../lib/format.js?v=20261101-4';
-import { navr, state, R } from '../features/host/ctx.js?v=20261101-4';
-import '../features/host/authView.js?v=20261101-4';
-import '../features/host/eventsView.js?v=20261101-4';
-import '../features/host/eventForm.js?v=20261101-4';
-import '../features/host/dashboard/index.js?v=20261101-4';
+import { auth } from '../lib/auth.js?v=20261101-5';
+import { rpc } from '../lib/db.js?v=20261101-5';
+import { $, initEffects } from '../lib/ui.js?v=20261101-5';
+import { esc } from '../lib/format.js?v=20261101-5';
+import { navr, state, R } from '../features/host/ctx.js?v=20261101-5';
+import '../features/host/authView.js?v=20261101-5';
+import '../features/host/eventsView.js?v=20261101-5';
+import '../features/host/eventForm.js?v=20261101-5';
+import '../features/host/dashboard/index.js?v=20261101-5';
 
 async function renderNav() {
   const u = auth.user(), name = (u && u.user_metadata && u.user_metadata.name) || (u && u.email) || '';

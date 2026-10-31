@@ -2,13 +2,13 @@
 // Every read and mutation goes through server-enforced RPCs that check the admin
 // role and write an audit row. No client-side role checks are trusted. Deletions
 // require typing a confirmation word; existing passwords are never shown or retrievable - the admin can only set a NEW one.
-import { auth } from '../lib/auth.js?v=20261101-4';
-import { request } from '../lib/http.js?v=20261101-4';
-import { rpc } from '../lib/db.js?v=20261101-4';
-import { $, $$, initEffects, confirmBox, toast } from '../lib/ui.js?v=20261101-4';
-import { esc, fmtDate, fmtTime, OCCASIONS, TZS, zonedToIso, isoToZoned, guestLink } from '../lib/format.js?v=20261101-4';
-import { uploadBanner, uploadFallbackOg, cleanupOldBanner, BANNER_TYPES, BANNER_MAX } from '../lib/storage.js?v=20261101-4';
-import { cropBanner } from '../lib/crop.js?v=20261101-4';
+import { auth } from '../lib/auth.js?v=20261101-5';
+import { request } from '../lib/http.js?v=20261101-5';
+import { rpc } from '../lib/db.js?v=20261101-5';
+import { $, $$, initEffects, confirmBox, toast } from '../lib/ui.js?v=20261101-5';
+import { esc, fmtDate, fmtTime, OCCASIONS, TZS, zonedToIso, isoToZoned, guestLink } from '../lib/format.js?v=20261101-5';
+import { uploadBanner, uploadFallbackOg, cleanupOldBanner, BANNER_TYPES, BANNER_MAX } from '../lib/storage.js?v=20261101-5';
+import { cropBanner } from '../lib/crop.js?v=20261101-5';
 
 const root = $('#root'), navr = $('#navr');
 

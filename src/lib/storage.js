@@ -1,5 +1,5 @@
-import { API_URL, PUBLISHABLE_KEY } from './config.js?v=20261101-4';
-import { getToken } from './session.js?v=20261101-4';
+import { API_URL, PUBLISHABLE_KEY } from './config.js?v=20261101-5';
+import { getToken } from './session.js?v=20261101-5';
 
 const BUCKET = 'banners';
 export const BANNER_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
