@@ -1205,3 +1205,33 @@ end $$;
 
 revoke all on function public.admin_update_event(text, jsonb) from public;
 grant execute on function public.admin_update_event(text, jsonb) to authenticated;
+
+-- Migration 23: co-hosts stay hidden. Guests already see only the host name;
+-- now co-hosts no longer see each other either. Only the event owner (or the
+-- site admin) can list co-host emails. Co-host access itself is unchanged, and
+-- the owner keeps full add/remove control.
+create or replace function public.list_cohosts(p_event_id text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid();
+begin
+  if v_uid is null or not (public.is_event_owner(p_event_id) or public.is_admin()) then
+    raise exception 'not authorized'; end if;
+  return (select coalesce(jsonb_agg(jsonb_build_object(
+      'email', m.email, 'added_at', m.created_at,
+      'account_exists', exists (select 1 from auth.users u where lower(u.email) = lower(m.email))) order by m.created_at), '[]'::jsonb)
+    from public.event_members m where m.event_id = p_event_id);
+end $$;
+
+-- A member may still read their own membership row (access checks rely on
+-- membership working), but never anyone else's.
+create or replace function public.is_own_member_email(p_email text) returns boolean
+language sql security definer set search_path = public stable as $$
+  select exists (select 1 from auth.users u where u.id = auth.uid() and lower(u.email) = lower(p_email));
+$$;
+
+drop policy if exists event_members_read on public.event_members;
+create policy event_members_read on public.event_members for select to authenticated
+  using (public.is_event_owner(event_id) or public.is_admin() or public.is_own_member_email(email));
+
+revoke all on function public.list_cohosts(text), public.is_own_member_email(text) from public;
+grant execute on function public.list_cohosts(text), public.is_own_member_email(text) to authenticated;

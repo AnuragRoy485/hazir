@@ -20,7 +20,7 @@ export async function share(p){
     <p class="muted" id="qshnote" hidden>Your browser cannot send the image directly, so the caption was copied and the image downloaded - attach it in any app.</p></div>
    <div class="card reveal in"><h4>Personal links</h4><p class="muted">Each named guest gets their own link, so you know exactly who answered and they cannot answer as someone else.</p>
     ${state.inv.length?`<div class="plist">${state.inv.map(i=>`<div class="prow"><span>${esc(i.name)}</span><span class="row"><button class="mini" data-c="${i.id}">Copy link</button><button class="mini" data-w="${i.id}">WhatsApp</button></span></div>`).join('')}</div><div class="row" style="margin-top:14px"><button class="btn btn-ghost btn-sm" id="callw">Copy reminder for ${s.awaitingNames.length} awaiting</button></div>`:'<p class="muted">No named guests yet. Add names in the Guests tab.</p>'}</div>
-   <div class="card reveal in"><h4>Co-hosts</h4><p class="muted">Co-hosts can edit and manage this event just like you: details, banner, guests, answers and exports. They never see your other events or your account. A co-host needs to create a Hazir account with the exact same email you add here - access starts when their account exists. You can remove a co-host at any time and their access ends immediately.</p>
+   <div class="card reveal in"><h4>Co-hosts</h4><p class="muted">Co-hosts can edit and manage this event just like you: details, banner, guests, answers and exports. They never see your other events or your account, and co-hosts are never shown to guests or to each other - only you can see and manage this list. Add one email or several separated by commas. A co-host needs to create a Hazir account with the exact same email you add here - access starts when their account exists. You can remove a co-host at any time and their access ends immediately.</p>
     <div id="charea"><p class="muted">Loading co-hosts...</p></div></div>
    <div class="card reveal in"><h4>RSVP status</h4><p class="muted">${ev.rsvp_closed?'You closed RSVPs. Guests see a closed message.':isClosed(ev)?'The deadline has passed, so guests can no longer answer. Edit the event to extend it.':ev.deadline_at?'Open until '+fmtDeadline(ev.deadline_at,ev.tz)+'.':'Open with no deadline.'}</p>
     <div class="row"><button class="btn btn-ghost btn-sm" id="tg">${ev.rsvp_closed?'Reopen RSVPs':'Close RSVPs now'}</button><button class="btn btn-ghost btn-sm" id="dup">Duplicate event</button></div></div>
@@ -46,14 +46,19 @@ export async function share(p){
   $('#dup').onclick=async()=>{try{const {id,owner,created_at,banner,banner_og,...c}=ev;const [n]=await db('events',{method:'POST',body:{...c,title:(ev.title+' (copy)').slice(0,80),rsvp_closed:false}});try{const og=await uploadFallbackOg(n.id,{title:n.title,when:fmtDate(n.event_date)+' \u00b7 '+fmtTime(n.default_time),host:n.host_name});await db('events?id=eq.'+n.id,{method:'PATCH',body:{banner_og:og.banner_og},prefer:'return=minimal'})}catch(_){/* branded preview card is best-effort */}toast('Duplicated. Guests are not copied.');R.openEvent(n.id)}catch(e){toast(niceErr(e),1)}};
   (async()=>{const area=$('#charea');if(!area)return;
     const me=auth.user();const isOwner=me&&ev.owner===me.id;
+    if(!isOwner){area.innerHTML='<p class="muted">This event is shared with you as a co-host. Only the host can see and manage co-hosts.</p>';return}
     let list=[];try{list=await rpc('list_cohosts',{p_event_id:ev.id})}catch(e){area.innerHTML='<p class="muted">Co-hosts could not be loaded.</p>';return}
-    const render=()=>{area.innerHTML=(isOwner?`<div class="row"><input id="chm" type="email" maxlength="120" placeholder="co-host@email.com" style="flex:1;min-width:180px" autocomplete="off"><button class="btn btn-sm" id="cha">Add co-host</button></div>`:'<p class="muted">This event is shared with you as a co-host.</p>')
-      +(list.length?`<div class="plist">${list.map(c=>`<div class="prow"><span>${esc(c.email)}${c.account_exists?'':' <small class="muted">(no account yet)</small>'}</span>${isOwner?`<button class="mini x" data-chr="${esc(c.email)}" title="Remove">&times;</button>`:''}</div>`).join('')}</div>`:(isOwner?'<p class="muted" style="margin-top:10px">No co-hosts yet.</p>':''));
-      const cha=$('#cha');if(cha)cha.onclick=async()=>{const inp=$('#chm');const em=(inp.value||'').trim();
-        if(!em){toast('Type an email first',1);return}
-        try{const r=await rpc('add_cohost',{p_event_id:ev.id,p_email:em});
-          list=await rpc('list_cohosts',{p_event_id:ev.id});render();
-          toast(r&&r.account_exists?'Co-host added':'Added. They will get access once they create an account with this email.')}catch(e){toast(niceErr(e),1)}};
+    const render=()=>{area.innerHTML=`<div class="row"><input id="chm" type="text" maxlength="500" placeholder="one@email.com, two@email.com" style="flex:1;min-width:180px" autocomplete="off"><button class="btn btn-sm" id="cha">Add co-host</button></div>`
+      +(list.length?`<div class="plist">${list.map(c=>`<div class="prow"><span>${esc(c.email)}${c.account_exists?'':' <small class="muted">(no account yet)</small>'}</span><button class="mini x" data-chr="${esc(c.email)}" title="Remove">&times;</button></div>`).join('')}</div>`:'<p class="muted" style="margin-top:10px">No co-hosts yet.</p>');
+      const cha=$('#cha');if(cha)cha.onclick=async()=>{const inp=$('#chm');const emails=(inp.value||'').split(/[,;\n]+/).map(e=>e.trim()).filter(Boolean);
+        if(!emails.length){toast('Type an email first',1);return}
+        const failed=[];let pending=0;
+        for(const em of emails){try{const r=await rpc('add_cohost',{p_event_id:ev.id,p_email:em});if(!(r&&r.account_exists))pending++}catch(e){failed.push(em+' - '+niceErr(e))}}
+        try{list=await rpc('list_cohosts',{p_event_id:ev.id})}catch(_){/* list refresh is best-effort */}
+        render();
+        if(failed.length)toast('Could not add '+failed.join('; '),1);
+        else if(emails.length>1)toast(emails.length+' co-hosts added'+(pending?' ('+pending+' will get access once they create an account)':''));
+        else toast(pending?'Added. They will get access once they create an account with this email.':'Co-host added')};
       $$('[data-chr]',area).forEach(b=>b.onclick=async()=>{if(!await confirmBox({title:'Remove this co-host?',body:b.dataset.chr+' will immediately lose access to this event. The event and all its data stay with you.',ok:'Remove co-host',danger:true}))return;
         try{await rpc('remove_cohost',{p_event_id:ev.id,p_email:b.dataset.chr});list=await rpc('list_cohosts',{p_event_id:ev.id});render();toast('Co-host removed')}catch(e){toast(niceErr(e),1)}})};
     render()})();
