@@ -1523,9 +1523,9 @@ select pg_notify('pgrst', 'reload schema');
 
 -- Migration 26: phone and email are required for new guest answers. The guest
 -- page validates format per country before this runs; the server enforces
--- presence on the 15-argument shape current pages call. The 13-argument
--- pages cached before migration 25 can no longer send contact-less
--- answers; the 13-argument shape below now fails closed with a reload message.
+-- presence on the 15-argument shape current pages call. Pages cached before
+-- migration 25 can no longer send contact-less answers; the 13-argument
+-- shape below now fails closed with a reload message.
 create or replace function public.submit_rsvp(p_event text, p_token text, p_name text, p_attending boolean,
   p_grp text, p_meal text, p_party int, p_arrival int, p_comp jsonb, p_note text, p_adults int, p_kids int, p_edit text,
   p_phone text, p_email text)
