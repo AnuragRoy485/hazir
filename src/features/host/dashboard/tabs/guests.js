@@ -9,8 +9,8 @@ import { nudge } from '../nudge.js?v=20261101-5';
 import { R } from '../../ctx.js?v=20261101-5';
 
 const pl=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
-const partyWords=r=>{const a=r.adults||0,k=r.kids||0;return a&&k?`${pl(a,'adult')} + ${pl(k,'kid')}`:a?pl(a,'adult'):k?pl(k,'kid'):pl(r.party||0,'guest')};
-const compLine=cs=>{const named=[],un={a:0,k:0};cs.forEach(c=>{const t=c.k==='k'?'k':'a';if(c.n&&c.n!=='Guest')named.push(esc(c.n)+(t==='k'?' (Kid)':''));else un[t]++});const out=[...named];if(un.a)out.push('Adult'+(un.a>1?' +'+(un.a-1):''));if(un.k)out.push('Kid'+(un.k>1?' +'+(un.k-1):''));return out.join(', ')};
+const partyWords=r=>{const a=r.adults||0,k=r.kids||0;return a&&k?`${pl(a,'Adult')} + ${pl(k,'Kid')}`:a?pl(a,'Adult'):k?pl(k,'Kid'):pl(r.party||0,'Guest')};
+const compLine=cs=>{const named=[],un={a:0,k:0};cs.forEach(c=>{const t=c.k==='k'?'k':'a';if(c.n&&c.n!=='Guest')named.push(esc(c.n)+(t==='k'?' (Kid)':''));else un[t]++});const out=[...named];if(un.a)out.push('Adult'+(un.a>1?' +'+un.a:''));if(un.k)out.push('Kid'+(un.k>1?' +'+un.k:''));return out.join(', ')};
 
 export function rows(){const {res,inv}=state,s=stats(),q=state.q.toLowerCase();
   let out=res.map(r=>({r,name:r.name,st:r.attending?'yes':'no'}));
