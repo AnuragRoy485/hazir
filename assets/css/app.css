@@ -39,7 +39,12 @@
 .tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}
 .search{flex:1;min-width:220px;border:1.5px solid #000;border-radius:999px;padding:11px 20px;font-size:16px;outline:none;transition:box-shadow .3s}.search:focus{box-shadow:0 0 0 4px rgba(0,0,0,.08)}
 .chips2{display:flex;gap:8px;flex-wrap:wrap}.chips2 .chip{padding:7px 14px;font-size:14px}
-.tablecard{padding:8px 8px;overflow:hidden}.pad{padding:16px 20px}
+.tablecard{padding:8px 8px;overflow:hidden}
+/* Guest table polish (preview A, approved): soft resting shadow, warmer border,
+   lighter row hover, gentle lift on row actions */
+.card.tablecard{border-color:#e7e1d8;box-shadow:0 1px 2px rgba(20,15,10,.05),0 10px 30px rgba(20,15,10,.06)}
+.trow:not(.thead):hover{background:#faf8f4}
+.mini:hover{transform:translateY(-1px)}.pad{padding:16px 20px}
 .trow{display:grid;grid-template-columns:2.2fr 1fr .6fr .9fr .9fr 1.3fr;gap:10px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);animation:fin .5s var(--ease) backwards;animation-delay:var(--d,0s);transition:background .2s}.trow:last-child{border:0}.trow:not(.thead):hover{background:var(--soft)}
 .thead{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);animation:none}
 .nm b{font-weight:700;display:block}.nm small{display:block;font-size:12px;color:var(--mut)}.nm .nt{font-style:italic}
