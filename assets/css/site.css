@@ -229,7 +229,7 @@ textarea{font-family:Georgia,serif}
 .solves p{color:var(--mut);margin-top:8px;font-size:16px}
 .cta-end{text-align:center}.cta-end .lead{margin:0 auto 30px}.cta-end .cta{justify-content:center}
 @media(max-width:900px){.solves{grid-template-columns:1fr 1fr}.nav nav{display:none}}
-@media(max-width:560px){.solves{grid-template-columns:1fr}.login{display:none}}
+@media(max-width:560px){.solves{grid-template-columns:1fr}.navr{gap:12px}.login{font-size:14px}}
 
 /* Footer links + credit */
 .footlinks{display:flex;gap:26px;justify-content:center;margin:26px 0 14px;font-size:15px}
