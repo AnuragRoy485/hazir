@@ -10,6 +10,7 @@ import { R } from '../../ctx.js?v=20261101-5';
 
 const pl=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
 const partyWords=r=>{const a=r.adults||0,k=r.kids||0;return a&&k?`${pl(a,'adult')} + ${pl(k,'kid')}`:a?pl(a,'adult'):k?pl(k,'kid'):pl(r.party||0,'guest')};
+const compLine=cs=>{const named=[],un={a:0,k:0};cs.forEach(c=>{const t=c.k==='k'?'k':'a';if(c.n&&c.n!=='Guest')named.push(esc(c.n)+(t==='k'?' (Kid)':''));else un[t]++});const out=[...named];if(un.a)out.push('Adult'+(un.a>1?' +'+(un.a-1):''));if(un.k)out.push('Kid'+(un.k>1?' +'+(un.k-1):''));return out.join(', ')};
 
 export function rows(){const {res,inv}=state,s=stats(),q=state.q.toLowerCase();
   let out=res.map(r=>({r,name:r.name,st:r.attending?'yes':'no'}));
@@ -21,7 +22,7 @@ export function guests(p){
     <div class="chips2">${[['all','All'],['yes','Coming'],['no','Declined'],['wait','Awaiting'],['in','Checked in']].map(f=>`<button class="chip${state.f===f[0]?' on':''}" data-f="${f[0]}">${f[1]}</button>`).join('')}</div>
     <div class="row"><button class="btn btn-ghost btn-sm" id="addg">Add guest</button><button class="btn btn-ghost btn-sm" id="csv">Export CSV</button><button class="btn btn-ghost btn-sm" id="xlsx">Export Excel</button></div></div>
     <div class="card tablecard"><div id="tb"></div></div>`;
-  const tb=()=>{const R=rows();$('#tb').innerHTML=R.length?`<div class="trow thead"><span>Guest</span><span>Status</span><span>Party</span><span>Meal</span><span>Arrives</span><span></span></div>`+R.map((x,i)=>{const r=x.r;return `<div class="trow" style="--d:${Math.min(i,12)*.03}s"><span class="nm"><b>${esc(x.name)}</b>${r&&r.grp?`<small>${esc(r.grp)}</small>`:''}${r&&r.phone?`<small>${esc(r.phone)}</small>`:''}${r&&r.email?`<small>${esc(r.email)}</small>`:''}${r&&r.note?`<small class="nt">"${esc(r.note)}"</small>`:''}${r&&(r.companions||[]).length?`<small>With ${r.companions.map(c=>esc(c.n||'Guest')+(c.k==='k'?' (kid)':'')).join(', ')}</small>`:''}</span>
+  const tb=()=>{const R=rows();$('#tb').innerHTML=R.length?`<div class="trow thead"><span>Guest</span><span>Status</span><span>Party</span><span>Meal</span><span>Arrives</span><span></span></div>`+R.map((x,i)=>{const r=x.r;return `<div class="trow" style="--d:${Math.min(i,12)*.03}s"><span class="nm"><b>${esc(x.name)}</b>${r&&r.grp?`<small>${esc(r.grp)}</small>`:''}${r&&r.phone?`<small>${esc(r.phone)}</small>`:''}${r&&r.email?`<small>${esc(r.email)}</small>`:''}${r&&r.note?`<small class="nt">"${esc(r.note)}"</small>`:''}${r&&(r.companions||[]).length?`<small>With ${compLine(r.companions)}</small>`:''}</span>
       <span><i class="pill ${x.st}">${x.st==='yes'?'Coming':x.st==='no'?'Declined':'Awaiting'}</i></span><span>${r&&r.attending?partyWords(r):'-'}</span><span>${r&&r.attending?esc(r.meal||'-'):'-'}</span><span>${r&&r.attending?fmtTime(r.arrival):'-'}</span>
       <span class="acts">${r?(r.attending?`<button class="mini" data-ci="${r.id}">${r.checked_in?'Checked in':'Check in'}</button>`:'')+`<button class="mini x" data-rm="${r.id}" title="Remove">&times;</button>`:`<button class="mini" data-nudge="${x.i.id}">Nudge</button><button class="mini x" data-ri="${x.i.id}" title="Remove">&times;</button>`}</span></div>`}).join(''):'<p class="muted pad">No guests match.</p>';
     $$('[data-ci]').forEach(b=>b.onclick=()=>toggleIn(b.dataset.ci));
