@@ -137,12 +137,25 @@ import { MOTION } from './motion-config.js?v=20261101-5';
     $$('.features .feat').forEach((f, i) => slideIn(f, (i % cols) < cols / 2, (i % cols) * MOTION.slides.stagger));
   };
 
-  // Final CTA: the huge faint outline word drifts as you scroll past.
+  // Final CTA: the huge outline word drifts as you scroll past, and each
+  // letter progressively fills to black (user-requested effect, Nov 8).
+  // The container is aria-hidden, so the letter spans need no SR treatment.
   const ghost = () => {
     const g = $('.cta-ghost'); if (!g) return;
-    gsap.fromTo(g, { xPercent: MOTION.ghost.fromX }, {
-      xPercent: MOTION.ghost.toX, ease: 'none',
-      scrollTrigger: { trigger: '.cta-end', start: 'top bottom', end: 'bottom top', scrub: MOTION.scrub },
+    let letters = Array.from(g.querySelectorAll('.cta-ghost-l'));
+    if (!letters.length) {
+      const text = g.textContent; g.textContent = '';
+      letters = Array.from(text).map(ch => {
+        const s = document.createElement('span');
+        s.className = 'cta-ghost-l'; s.textContent = ch; g.appendChild(s); return s;
+      });
+    }
+    const st = { trigger: '.cta-end', start: 'top bottom', end: 'bottom top', scrub: MOTION.scrub };
+    gsap.fromTo(g, { xPercent: MOTION.ghost.fromX }, { xPercent: MOTION.ghost.toX, ease: 'none', scrollTrigger: st });
+    gsap.to(letters, {
+      color: '#000', ease: 'none',
+      duration: MOTION.ghost.fillDuration, stagger: MOTION.ghost.fillStagger,
+      scrollTrigger: Object.assign({}, st),
     });
   };
 
@@ -187,7 +200,11 @@ import { MOTION } from './motion-config.js?v=20261101-5';
       // (their side-slide animation) never pollute the path geometry.
       const pts = steps.map(s => {
         const n = s.querySelector('.n'); if (!n) return null;
-        return { x: n.offsetLeft + Math.min(18, n.offsetWidth / 2), y: n.offsetTop + n.offsetHeight / 2 };
+        // Walk the offsetParent chain up to the section: transforms on the
+        // steps (their side-slide animation) never pollute the path geometry.
+        let x = 0, y = 0, el = n;
+        while (el && el !== sec) { x += el.offsetLeft; y += el.offsetTop; el = el.offsetParent; }
+        return { x: x + Math.min(18, n.offsetWidth / 2), y: y + n.offsetHeight / 2 };
       }).filter(Boolean);
       if (pts.length < 2) return;
       path.setAttribute('d', 'M ' + pts.map(p => p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' L '));
@@ -283,7 +300,6 @@ import { MOTION } from './motion-config.js?v=20261101-5';
       heroFineFill();
       headings(!pinDesk);
       marquee();
-      ghost();
       hostSlides(pinDesk ? 4 : 2);
       if (pinDesk) {
         heroPin(); problemPin();
@@ -297,6 +313,9 @@ import { MOTION } from './motion-config.js?v=20261101-5';
         $$('.how .step').forEach((s, i) => slideIn(s, i % 2 === 0));
         $$('.occ .tile').forEach((t, i) => slideIn(t, i % 2 === 0));
       }
+      // Ghost last: its scroll range must be measured with all pin-spacers
+      // already in place, or the letters fill long before the CTA is reached.
+      ghost();
       anchors();
       return () => { cleanups.forEach(fn => fn()); splits.splice(0).forEach(s => s.revert()); };
     });

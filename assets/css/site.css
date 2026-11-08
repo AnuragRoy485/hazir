@@ -276,7 +276,8 @@ textarea{font-family:Georgia,serif}
 /* Final CTA: huge faint outline word behind the content (drifts with scroll). */
 .cta-end{position:relative;overflow:hidden}
 .cta-ghost{display:none}
-html.fx .cta-ghost{display:block;position:absolute;left:0;right:0;top:50%;margin-top:-.52em;text-align:center;font-size:clamp(120px,26vw,380px);line-height:1;color:transparent;-webkit-text-stroke:1.5px rgba(0,0,0,.13);pointer-events:none;z-index:0;white-space:nowrap}
+html.fx .cta-ghost{display:block;position:absolute;left:0;right:0;top:50%;margin-top:-.52em;text-align:center;font-size:clamp(80px,19vw,280px);line-height:1;color:transparent;-webkit-text-stroke:1.5px rgba(0,0,0,.13);pointer-events:none;z-index:0;white-space:nowrap}
+html.fx .cta-ghost-l{display:inline-block;color:transparent}
 html.fx .cta-end h2,html.fx .cta-end .lead,html.fx .cta-end .cta{position:relative;z-index:1}
 
 /* The problem: pinned while the sentence loads word by word (GSAP drives it). */
@@ -290,7 +291,7 @@ html.fx .pinhead-stage{min-height:100vh;display:flex;flex-direction:column;justi
 /* ---------- Desktop pinned scenes (fx + min-width:900px): drawn how-it-works path, sideways occasions rail ---------- */
 @media (min-width:900px){
   html.fx .how{position:relative}
-  html.fx .occ{overflow:hidden}
+  html.fx .occ{max-width:none;overflow:hidden;padding-left:calc(max(0px,(100vw - 1280px)/2) + clamp(18px,6vw,96px));padding-right:0}
   html.fx .how .steps{position:relative;z-index:1}
   html.fx .how-draw{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
   html.fx .how-line{fill:none;stroke:#000;stroke-width:1.5;stroke-dasharray:1;stroke-dashoffset:1}
@@ -298,6 +299,7 @@ html.fx .pinhead-stage{min-height:100vh;display:flex;flex-direction:column;justi
   html.fx .how .step .n{background:var(--bg);display:inline-block;padding:0 8px 0 0;position:relative;z-index:1}
   html.fx .occ-rail{display:flex;align-items:stretch;width:max-content;margin-top:30px;border-top:1px solid #000;border-left:1px solid var(--line);will-change:transform}
   html.fx .occ-lead{flex:0 0 auto;width:clamp(300px,30vw,460px);padding:40px 36px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;background:var(--bg);position:relative;z-index:2}
+  html.fx .occ-lead::before{content:"";position:absolute;right:100%;top:-1px;bottom:-1px;width:120vw;background:var(--bg)}
   html.fx .occ-rail .tile{flex:0 0 auto;width:clamp(280px,24vw,360px);min-height:260px}
 }
 

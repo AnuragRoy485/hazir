@@ -18,8 +18,9 @@ export const MOTION = {
   slides: { x: 120, xTablet: 80, xMobile: 40, duration: 0.9, stagger: 0.08 },
   // Occasions marquee: base drift, scroll-velocity boost, skew while fast.
   marquee: { base: 26, velocityBoost: 1.1, skewMax: 5, smooth: 0.08 },
-  // Final CTA: faint outline word drifts horizontally (percent of its width).
-  ghost: { fromX: -10, toX: 10 },
+  // Final CTA: outline word drifts horizontally (percent of its width; small
+  // enough that the full word always fits) while each letter fills to black.
+  ghost: { fromX: -8, toX: 8, fillDuration: 0.55, fillStagger: 0.09 },
   // Existing stat counters (hero dots + problem figures), retimed here.
   counters: { duration: 1400 },
   // Layout rules: pins only on wide screens, shorter distances on phones.
