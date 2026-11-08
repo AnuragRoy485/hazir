@@ -34,8 +34,8 @@ h3{font-size:clamp(20px,2.2vw,26px);font-weight:400;letter-spacing:-.01em}
 .muted{color:var(--mut)}
 .fine{font-size:13px;color:var(--mut);margin-top:16px}
 .tiny{font-size:11px;letter-spacing:.16em;color:var(--mut);text-transform:uppercase}
-.reveal{opacity:0;transform:translateY(34px);transition:opacity .9s var(--ease) var(--d,0s),transform .9s var(--ease) var(--d,0s)}
-.reveal.in{opacity:1;transform:none}
+html.fx .reveal{opacity:0;transform:translateY(34px);transition:opacity .9s var(--ease) var(--d,0s),transform .9s var(--ease) var(--d,0s)}
+html.fx .reveal.in{opacity:1;transform:none}
 .hero{min-height:100vh;display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding:120px clamp(18px,6vw,96px) 60px;max-width:1360px;margin:0 auto}
 .hero h1 em{font-style:italic}
 .hero .lead{margin:28px 0 32px}
@@ -54,13 +54,12 @@ h3{font-size:clamp(20px,2.2vw,26px);font-weight:400;letter-spacing:-.01em}
 .dots i.on{transform:scale(1.08)}
 .dots i.on:after{opacity:1}
 [data-split] .w{display:inline-block;overflow:hidden;vertical-align:top;padding:.04em .08em .22em;margin:-.04em -.08em -.22em}
-[data-split] .w span{display:inline-block;transform:translateY(110%);transition:transform 1s var(--ease);transition-delay:calc(var(--i)*.08s + .1s)}
-[data-split].in .w span{transform:none}
+html.fx [data-split] .w span{display:inline-block;transform:translateY(110%);transition:transform 1s var(--ease);transition-delay:calc(var(--i)*.08s + .1s)}
+html.fx [data-split].in .w span{transform:none}
 .ticker{border-top:1px solid #000;border-bottom:1px solid #000;overflow:hidden;white-space:nowrap;padding:18px 0}
-.track{display:inline-flex;gap:56px;animation:slide 40s linear infinite;font-size:clamp(22px,3.4vw,40px);font-style:italic;padding-left:56px}
+.track{display:inline-flex;gap:56px;font-size:clamp(22px,3.4vw,40px);font-style:italic;padding-left:56px;will-change:transform}
+.track-b{margin-top:10px}
 .track span:after{content:"\2726";margin-left:56px;font-style:normal;font-size:.5em;vertical-align:middle}
-.ticker:hover .track{animation-play-state:paused}
-@keyframes slide{to{transform:translateX(-50%)}}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:900px;margin:36px 0 60px;font-size:19px;color:#222}
 .bignums{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;border-top:1px solid #000}
 .bignums div{padding-top:20px}
@@ -268,42 +267,37 @@ textarea{font-family:Georgia,serif}
    layered hero parallax). Hidden states exist only under
    html.fx, so no-JS and reduced-motion readers always see the full content.
    -------------------------------------------------------------------------- */
-.kl-l{display:block}
-html.fx .kl-l{overflow:hidden;padding:.08em .12em .14em;margin:-.08em -.12em -.14em}
-html.fx .kl-i{display:block;transform:translateY(114%);transition:transform 1s var(--ease);transition-delay:calc(var(--i)*.13s + .06s)}
-html.fx .in .kl-i{transform:none}
-html.fx .kl-pin .kl-i{transition:none}
-html.fx .pinhead .eyebrow{opacity:0;transition:none}
+/* SplitText line masks: padding compensation so Georgia descenders are never clipped. */
+.kl-line-mask{padding:.08em .12em .14em;margin:-.08em -.12em -.14em}
 
-/* Pinned act: the problem headline holds while its three lines assemble. */
-@media (min-width:900px){
-  html.fx .pinhead{height:260vh}
-  html.fx .pinhead-stage{position:sticky;top:0;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
-}
-/* Section drift: the page ground breathes between warm paper and white. */
+/* Anchors clear the fixed header when native scrolling is used. */
+.section{scroll-margin-top:84px}
+
+/* Final CTA: huge faint outline word behind the content (drifts with scroll). */
+.cta-end{position:relative;overflow:hidden}
+.cta-ghost{display:none}
+html.fx .cta-ghost{display:block;position:absolute;left:0;right:0;top:50%;margin-top:-.52em;text-align:center;font-size:clamp(120px,26vw,380px);line-height:1;color:transparent;-webkit-text-stroke:1.5px rgba(0,0,0,.13);pointer-events:none;z-index:0;white-space:nowrap}
+html.fx .cta-end h2,html.fx .cta-end .lead,html.fx .cta-end .cta{position:relative;z-index:1}
+
+/* The problem: pinned while the sentence loads word by word (GSAP drives it). */
+html.fx .pinhead{position:relative}
+html.fx .pinhead-stage{min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+
 @media (prefers-reduced-motion:reduce){
-  html.fx .kl-i{transform:none}
   .rt>*{transition:none}
 }
 
-/* ---------- Nightfall-style act sequence (fx + desktop): hero hold, drawn path, sideways rail, closing hold ---------- */
-html.fx .wipe .wipe-i{display:block;clip-path:inset(-12% 103% -12% 0);transition:clip-path 1.15s var(--ease) .05s}
-html.fx .wipe.in .wipe-i{clip-path:inset(-12% -3% -12% 0)}
+/* ---------- Desktop pinned scenes (fx + min-width:900px): drawn how-it-works path, sideways occasions rail ---------- */
 @media (min-width:900px){
-  html.fx .act-pin{position:relative}
-  html.fx .act-stage{position:sticky;top:0;min-height:100vh;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
-  html.fx .act-stage>section{width:100%}
-  html.fx #act-hero{height:235vh}
-  html.fx #act-how{height:300vh}
-  html.fx #act-occ{height:330vh}
-  html.fx #act-cta{height:175vh}
+  html.fx .how{position:relative}
+  html.fx .occ{overflow:hidden}
+  html.fx .how .steps{position:relative;z-index:1}
   html.fx .how-draw{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
   html.fx .how-line{fill:none;stroke:#000;stroke-width:1.5;stroke-dasharray:1;stroke-dashoffset:1}
   html.fx .how-node{fill:#fff;stroke:#000;stroke-width:1.5;opacity:0}
-  html.fx #act-how .how{position:relative;z-index:1}
-  html.fx #act-how .step .n{background:var(--bg);display:inline-block;padding:0 8px 0 0;position:relative;z-index:1}
+  html.fx .how .step .n{background:var(--bg);display:inline-block;padding:0 8px 0 0;position:relative;z-index:1}
   html.fx .occ-rail{display:flex;align-items:stretch;width:max-content;margin-top:30px;border-top:1px solid #000;border-left:1px solid var(--line);will-change:transform}
-  html.fx .occ-lead{flex:0 0 auto;width:clamp(300px,30vw,460px);padding:40px 36px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;justify-content:center}
+  html.fx .occ-lead{flex:0 0 auto;width:clamp(300px,30vw,460px);padding:40px 36px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;background:var(--bg);position:relative;z-index:2}
   html.fx .occ-rail .tile{flex:0 0 auto;width:clamp(280px,24vw,360px);min-height:260px}
 }
 
