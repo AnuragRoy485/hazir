@@ -276,7 +276,8 @@ textarea{font-family:Georgia,serif}
 /* Final CTA: huge faint outline word behind the content (drifts with scroll). */
 .cta-end{position:relative;overflow:hidden}
 .cta-ghost{display:none}
-html.fx .cta-ghost{display:block;position:absolute;left:0;right:0;top:50%;margin-top:-.52em;text-align:center;font-size:clamp(80px,19vw,280px);line-height:1;color:transparent;-webkit-text-stroke:1.5px rgba(0,0,0,.13);pointer-events:none;z-index:0;white-space:nowrap}
+html.fx .cta-end{padding-bottom:calc(clamp(80px,19vw,280px) + clamp(48px,8vw,110px))}
+html.fx .cta-ghost{display:block;position:absolute;left:0;right:0;bottom:clamp(24px,4vw,56px);text-align:center;font-size:clamp(80px,19vw,280px);line-height:1;color:transparent;-webkit-text-stroke:1.5px rgba(0,0,0,.13);pointer-events:none;z-index:0;white-space:nowrap}
 html.fx .cta-ghost-l{display:inline-block;color:transparent}
 html.fx .cta-end h2,html.fx .cta-end .lead,html.fx .cta-end .cta{position:relative;z-index:1}
 

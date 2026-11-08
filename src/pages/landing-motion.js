@@ -152,10 +152,12 @@ import { MOTION } from './motion-config.js?v=20261101-5';
     }
     const st = { trigger: '.cta-end', start: 'top bottom', end: 'bottom top', scrub: MOTION.scrub };
     gsap.fromTo(g, { xPercent: MOTION.ghost.fromX }, { xPercent: MOTION.ghost.toX, ease: 'none', scrollTrigger: st });
+    // Fill is measured on the word itself, so it runs while the word travels
+    // from the lower edge to mid-viewport and completes while fully in view.
     gsap.to(letters, {
       color: '#000', ease: 'none',
       duration: MOTION.ghost.fillDuration, stagger: MOTION.ghost.fillStagger,
-      scrollTrigger: Object.assign({}, st),
+      scrollTrigger: { trigger: g, start: 'top 95%', end: 'top 45%', scrub: MOTION.scrub },
     });
   };
 
