@@ -26,5 +26,5 @@ export const MOTION = {
   // Layout rules: pins only on wide screens, shorter distances on phones.
   breakpoints: { pinMin: 900, mobile: 768 },
   // Where nav anchors land inside pinned sections (fraction of the pin).
-  anchors: { how: 0.45, occasions: 0.3, default: 0.3 },
+  anchors: { how: 0.45, occasions: 0.15, default: 0.3 },
 };
