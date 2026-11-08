@@ -245,11 +245,12 @@ import { MOTION } from './motion-config.js?v=20261101-5';
         pin: true, scrub: MOTION.scrub, anticipatePin: 1, invalidateOnRefresh: true,
       },
     });
-    tl.fromTo(lead, { opacity: 0, y: 24 }, { opacity: 1, y: 0, ease: 'none', duration: 0.14 }, 0);
+    // The pinned timeline only moves the track: the lead and the first tile
+    // are fully visible from pin start, so a nav click on #occasions lands on
+    // a complete, readable scene (no entrance fades inside the pin).
     tl.fromTo(rail, { x: 0 }, { x: () => -travel(), ease: 'none', duration: 1 }, 0);
     // The heading stays fixed on the left while the cards move sideways beneath it.
     tl.fromTo(lead, { x: 0 }, { x: () => travel(), ease: 'none', duration: 1 }, 0);
-    tiles.forEach((t, i) => tl.fromTo(t, { opacity: 0.5, y: 18 }, { opacity: 1, y: 0, ease: 'none', duration: 0.15 }, 0.04 + i * 0.1));
     return () => { sec.insertBefore(eyebrow, rail); sec.insertBefore(h2, rail); tiles.forEach(t => grid.append(t)); rail.replaceWith(grid); };
   };
 
