@@ -5,7 +5,7 @@
    html.fx, so no-JS, missing-library and reduced-motion readers always see
    the full content immediately. Only transform, opacity and a light blur
    filter (<= 4px) are ever animated. */
-import { MOTION } from './motion-config.js?v=20261101-5';
+import { MOTION } from './motion-config.js?v=20261108-1';
 
 (() => {
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
@@ -166,7 +166,12 @@ import { MOTION } from './motion-config.js?v=20261101-5';
     const sec = $('.hero'); if (!sec) return;
     const text = $('.hero-text'), plx = sec.querySelector('.plx-wrap');
     const tl = gsap.timeline({
-      scrollTrigger: { trigger: sec, start: 'top top', end: '+=' + MOTION.pins.hero * 100 + '%', pin: true, scrub: MOTION.scrub, anticipatePin: 1 },
+      scrollTrigger: {
+        trigger: sec, start: 'top top', end: '+=' + MOTION.pins.hero * 100 + '%', pin: true, scrub: MOTION.scrub, anticipatePin: 1,
+        // Directional snap: resting mid-fade left the hero stuck faded when
+        // scrolling back up. Snap up to a fully readable hero, down past it.
+        snap: { snapTo: [0, 1], directional: true, duration: MOTION.heroSnap.duration, delay: MOTION.heroSnap.delay, ease: 'power1.inOut', inertia: false },
+      },
     });
     tl.to(text, { y: -48, opacity: 0.08, ease: 'none' }, 0);
     if (plx) tl.to(plx, { y: -120, ease: 'none' }, 0);

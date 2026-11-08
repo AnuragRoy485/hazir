@@ -10,6 +10,9 @@ export const MOTION = {
   // Pinned scroll length per section, in viewport heights of extra scroll.
   // Total stays under 3 viewports: 0.3 + 0.95 + 0.4 + 0.95 + 0.3 = 2.9.
   pins: { hero: 0.3, problem: 0.95, how: 0.4, occasions: 0.95, cta: 0.3 },
+  // The hero pin never rests mid-fade: a scroll back up snaps home to the
+  // crisp hero, a scroll down completes the handoff to the next section.
+  heroSnap: { duration: { min: 0.15, max: 0.45 }, delay: 0.1 },
   // Effect 1: sentences load word by word (opacity floor + light blur, max 4px).
   wordFill: { fromOpacity: 0.15, accentFromOpacity: 0.45, blurDesktop: 3, blurMobile: 2, stagger: 0.06 },
   // Effect 2: section headings, masked lines, italic words land last.
