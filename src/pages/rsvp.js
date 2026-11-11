@@ -14,7 +14,7 @@ const msgCard=(h,p)=>root.innerHTML=`<div class="card reveal in center"><h2>${h}
   if(edit&&!ev.answered)return msgCard('Link not recognised.','This RSVP link is not valid. Ask your host for a fresh invite.');
   document.title=ev.title+' - RSVP';
   const head=`${ev.banner?`<img class="banner" src="${esc(ev.banner)}" alt="">`:''}<p class="eyebrow">${esc(ev.occasion)}</p><h1 class="gh">${esc(ev.title)}</h1><p class="lead">${fmtDate(ev.date)}${ev.host?' &middot; hosted by '+esc(ev.host):''}</p>${ev.venue?`<p class="muted">${esc(ev.venue)}</p>`:''}${ev.message?`<p class="gmsg">${esc(ev.message)}</p>`:''}`;
-  if(ev.closed)return root.innerHTML=`<div class="card reveal in">${head}<div class="msg">RSVPs for this event are closed. Please contact your host directly.</div></div>`;
+  if(ev.closed)return root.innerHTML=`<div class="card reveal in center">${head}<h2 class="closedline">The RSVP window has closed.</h2><p class="muted">This event is no longer taking responses here. If your plans change, please contact your host directly.</p></div>`;
   let att=ev.my_attending!=null?!!ev.my_attending:true,
       adults=ev.my_adults||ev.my_party||1,
       kids=ev.my_kids||0,
@@ -72,7 +72,7 @@ const msgCard=(h,p)=>root.innerHTML=`<div class="card reveal in center"><h2>${h}
         if(r.edit){edit=r.edit;if(!tok)history.replaceState(null,'',`?e=${eid}&r=${r.edit}`)}
         $('#cp').onclick=()=>copy(keep,'Link copied');
         $('#ch').onclick=draw}
-      catch(err){m.hidden=false;m.textContent=/closed/i.test(err.message)?'RSVPs just closed for this event.':err.message;b.disabled=false;b.textContent='Send my answer'}};
+      catch(err){m.hidden=false;m.textContent=/closed/i.test(err.message)?'RSVPs for this event just closed. Please contact your host directly.':err.message;b.disabled=false;b.textContent='Send my answer'}};
   };
   draw();
 })();
