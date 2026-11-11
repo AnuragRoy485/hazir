@@ -23,11 +23,11 @@ export async function listView(){
     view(`<section class="dash reveal in"><div class="dhead"><div><p class="eyebrow">Your events</p><h2>${first?'Hello, '+esc(first)+'.':'Hello.'}</h2></div><button class="btn magnetic" id="newEv">New event</button></div>
       ${evs.length?`<div class="vtoggle" role="tablist"><button class="vt on" data-v="list">List</button><button class="vt" data-v="cal">Calendar</button></div>${nextUp(upcoming,today)}<div id="calbox" hidden></div>
         ${upcoming.length?`<div class="evgrid" id="evlist">${upcoming.map(card).join('')}</div>`:`<div class="card empty reveal in" id="evlist"><h3>No upcoming events.</h3><p class="muted">Create a new event and share the link. Answers show up here the moment guests send them.</p></div>`}
-        ${past.length?`<p class="eyebrow pasthead">Past events</p><div class="evgrid">${past.map(card).join('')}</div>`:''}`
+        ${past.length?`<div id="pastlist"><p class="eyebrow pasthead">Past events</p><div class="evgrid">${past.map(card).join('')}</div></div>`:''}`
       :`<div class="card empty reveal in"><h3>No events yet.</h3><p class="muted">Create your first event and share the link. Answers show up here the moment guests send them.</p><button class="btn" id="newEv2">Create your first event</button></div>`}
     </section>`);
     $$('.evcard').forEach(c=>{c.onclick=()=>R.openEvent(c.dataset.id);c.onkeydown=e=>{if(e.key==='Enter')R.openEvent(c.dataset.id)}});
-    const vt=$$('.vt');vt.forEach(b=>b.onclick=()=>{vt.forEach(x=>x.classList.toggle('on',x===b));const c=b.dataset.v==='cal';$('#calbox').hidden=!c;$('#evlist').hidden=c;if(c)calendar($('#calbox'),evs,by)});
+    const vt=$$('.vt');vt.forEach(b=>b.onclick=()=>{vt.forEach(x=>x.classList.toggle('on',x===b));const c=b.dataset.v==='cal';$('#calbox').hidden=!c;$('#evlist').hidden=c;const pl=$('#pastlist');if(pl)pl.hidden=c;if(c)calendar($('#calbox'),evs,by)});
     const ne=$('#newEv'),ne2=$('#newEv2');ne.onclick=()=>R.eventForm();if(ne2)ne2.onclick=()=>R.eventForm();
   }catch(e){view(`<div class="card empty"><h3>Could not load events.</h3><p class="muted">${esc(niceErr(e))}</p><button class="btn" onclick="location.reload()">Try again</button></div>`)}
 }
