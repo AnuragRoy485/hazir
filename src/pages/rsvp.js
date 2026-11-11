@@ -14,7 +14,7 @@ const msgCard=(h,p)=>root.innerHTML=`<div class="card reveal in center"><h2>${h}
   if(edit&&!ev.answered)return msgCard('Link not recognised.','This RSVP link is not valid. Ask your host for a fresh invite.');
   document.title=ev.title+' - RSVP';
   const head=`${ev.banner?`<img class="banner" src="${esc(ev.banner)}" alt="">`:''}<p class="eyebrow">${esc(ev.occasion)}</p><h1 class="gh">${esc(ev.title)}</h1><p class="lead">${fmtDate(ev.date)}${ev.host?' &middot; hosted by '+esc(ev.host):''}</p>${ev.venue?`<p class="muted">${esc(ev.venue)}</p>`:''}${ev.message?`<p class="gmsg">${esc(ev.message)}</p>`:''}`;
-  if(ev.closed)return root.innerHTML=`<div class="card reveal in center">${head}<h2 class="closedline">The guest list is set.</h2><p class="muted">This event is no longer taking responses here. If your plans change, please contact your host directly.</p></div>`;
+  if(ev.closed)return root.innerHTML=`<div class="card reveal in center">${head}<h2 class="closedline">That's a wrap on RSVPs.</h2><p class="muted">This event is no longer taking responses here. If your plans change, please contact your host directly.</p></div>`;
   let att=ev.my_attending!=null?!!ev.my_attending:true,
       adults=ev.my_adults||ev.my_party||1,
       kids=ev.my_kids||0,
