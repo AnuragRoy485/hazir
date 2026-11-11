@@ -15,10 +15,15 @@ export async function listView(){
     const by={};res.forEach(r=>{const o=by[r.event_id]||(by[r.event_id]={n:0,h:0});o.n++;if(r.attending)o.h+=r.party});
     const u=auth.user(),first=((u.user_metadata&&u.user_metadata.name)||'').split(' ')[0];
     const today=new Date().toISOString().slice(0,10);
+    const evDay=e=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:e.tz||undefined}).format(new Date())}catch(err){return today}};
+    const upcoming=evs.filter(e=>e.event_date>=evDay(e)),past=evs.filter(e=>e.event_date<evDay(e)).slice().reverse();
+    const card=(e,i)=>{const s=by[e.id]||{n:0,h:0},p=Math.min(100,Math.round(s.n/e.invited*100));return `<article class="card evcard reveal" style="--d:${i*.06}s" data-id="${e.id}" tabindex="0">
+        <div class="tiny">${esc(e.occasion)}</div><h3>${esc(e.title)}</h3><p class="muted">${fmtDate(e.event_date)}</p>
+        <div class="bar"><i style="width:${p}%"></i></div><div class="evstat"><span><b>${s.h}</b> coming</span><span><b>${s.n}</b> of ${e.invited} answered</span></div></article>`};
     view(`<section class="dash reveal in"><div class="dhead"><div><p class="eyebrow">Your events</p><h2>${first?'Hello, '+esc(first)+'.':'Hello.'}</h2></div><button class="btn magnetic" id="newEv">New event</button></div>
-      ${evs.length?`<div class="vtoggle" role="tablist"><button class="vt on" data-v="list">List</button><button class="vt" data-v="cal">Calendar</button></div>${nextUp(evs,today)}<div id="calbox" hidden></div><div class="evgrid" id="evlist">${evs.map((e,i)=>{const s=by[e.id]||{n:0,h:0},p=Math.min(100,Math.round(s.n/e.invited*100));return `<article class="card evcard reveal" style="--d:${i*.06}s" data-id="${e.id}" tabindex="0">
-        <div class="tiny">${esc(e.occasion)}${e.event_date<today?' &middot; past':''}</div><h3>${esc(e.title)}</h3><p class="muted">${fmtDate(e.event_date)}</p>
-        <div class="bar"><i style="width:${p}%"></i></div><div class="evstat"><span><b>${s.h}</b> coming</span><span><b>${s.n}</b> of ${e.invited} answered</span></div></article>`}).join('')}</div>`
+      ${evs.length?`<div class="vtoggle" role="tablist"><button class="vt on" data-v="list">List</button><button class="vt" data-v="cal">Calendar</button></div>${nextUp(upcoming,today)}<div id="calbox" hidden></div>
+        ${upcoming.length?`<div class="evgrid" id="evlist">${upcoming.map(card).join('')}</div>`:`<div class="card empty reveal in" id="evlist"><h3>No upcoming events.</h3><p class="muted">Create a new event and share the link. Answers show up here the moment guests send them.</p></div>`}
+        ${past.length?`<p class="eyebrow pasthead">Past events</p><div class="evgrid">${past.map(card).join('')}</div>`:''}`
       :`<div class="card empty reveal in"><h3>No events yet.</h3><p class="muted">Create your first event and share the link. Answers show up here the moment guests send them.</p><button class="btn" id="newEv2">Create your first event</button></div>`}
     </section>`);
     $$('.evcard').forEach(c=>{c.onclick=()=>R.openEvent(c.dataset.id);c.onkeydown=e=>{if(e.key==='Enter')R.openEvent(c.dataset.id)}});
