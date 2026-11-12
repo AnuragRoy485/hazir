@@ -9,7 +9,7 @@ import { R } from './ctx.js?v=20261101-5';
 
 export function eventForm(ev){
   const e=ev||{title:'',occasion:'Wedding',event_date:'',host_name:((auth.user().user_metadata||{}).name)||'',invited:100,deadline:'',max_party:4,default_time:1140,tz:browserTz()};
-  const dz=e.deadline_at?isoToZoned(e.deadline_at,e.tz):{date:'',time:'18:00'};const zs=[...new Set([e.tz,...TZS])];
+  const dz=e.deadline_at?isoToZoned(e.deadline_at,e.tz):{date:'',time:'18:00'};const et0=e.end_at?isoToZoned(e.end_at,e.tz).time:'';const zs=[...new Set([e.tz,...TZS])];
   view(`<section class="formwrap"><button class="back" id="bk">&larr; Back</button><div class="card reveal in"><p class="eyebrow">${ev?'Edit event':'New event'}</p><h2>${ev?'Edit details.':'Tell us the occasion.'}</h2>
   <form id="ef" novalidate>
     <label class="field">Event name<input id="t" maxlength="80" required value="${esc(e.title)}" placeholder="Riya and Arjun's wedding"></label>
@@ -28,7 +28,8 @@ export function eventForm(ev){
     <label class="field">Timezone for the deadline<select id="tz">${zs.map(x=>`<option${x===e.tz?' selected':''}>${x}</option>`).join('')}</select></label>
     <p class="fine">Guests cannot answer after this exact moment. The server enforces it, not just the page.</p>
     <label class="field">Message to guests (optional)<textarea id="ms" rows="3" placeholder="Dress code, parking, a note of welcome...">${esc(e.message||'')}</textarea></label>
-    <label class="field">Usual arrival time<input id="tm" type="time" value="${String(Math.floor(e.default_time/60)).padStart(2,'0')}:${String(e.default_time%60).padStart(2,'0')}"></label>
+    <div class="two"><label class="field">Usual arrival time<input id="tm" type="time" value="${String(Math.floor(e.default_time/60)).padStart(2,'0')}:${String(e.default_time%60).padStart(2,'0')}"></label><label class="field">End time (optional)<input id="et" type="time" value="${et0}"></label></div>
+    <p class="fine">Once the end time passes, the event moves to Past events on your dashboard.</p>
     <div class="two"><label class="field">Meal choices<select id="am"><option value="1"${e.ask_meal!==false?' selected':''}>Ask</option><option value="0"${e.ask_meal===false?' selected':''}>Skip</option></select></label><label class="field">Arrival time<select id="aa"><option value="1"${e.ask_arrival!==false?' selected':''}>Ask</option><option value="0"${e.ask_arrival===false?' selected':''}>Skip</option></select></label></div>
     <label class="field">Note for the host<select id="an"><option value="1"${e.ask_note!==false?' selected':''}>Ask</option><option value="0"${e.ask_note===false?' selected':''}>Skip</option></select></label>
     <p class="fine">Skip a question to hide it on the invite. Answers guests already gave stay saved, and they come back if you switch the question on again.</p>
@@ -68,9 +69,9 @@ export function eventForm(ev){
     else if(!e.banner){const og=await uploadFallbackOg(id,card);await db('events?id=eq.'+id,{method:'PATCH',body:{banner_og:og.banner_og},prefer:'return=minimal'})}
   };
   $('#ef').onsubmit=async x=>{x.preventDefault();const b=$('#sv'),m=$('#msg');
-    const [hh,mm]=($('#tm').value||'19:00').split(':').map(Number);
-    const row={title:$('#t').value.trim(),occasion:$('#o').value,event_date:$('#d').value,host_name:$('#h').value.trim()||null,invited:+$('#n').value,deadline:$('#dl').value||null,deadline_at:$('#dl').value?zonedToIso($('#dl').value,$('#dt').value||'18:00',$('#tz').value):null,tz:$('#tz').value,venue:$('#vn').value.trim()||null,message:$('#ms').value.trim()||null,max_party:+$('#mp').value,default_time:hh*60+mm,ask_meal:$('#am').value==='1',ask_arrival:$('#aa').value==='1',ask_note:$('#an').value==='1'};
-    const bad=!row.title?'Give the event a name.':!row.event_date?'Pick the date.':!(row.invited>=1)?'Enter how many guests you are inviting.':row.deadline&&row.deadline>row.event_date?'The RSVP deadline should be on or before the event date.':row.deadline_at&&!ev&&Date.parse(row.deadline_at)<=Date.now()?'That deadline has already passed. Pick a later time.':'';
+    const [hh,mm]=($('#tm').value||'19:00').split(':').map(Number);const et=$('#et').value;
+    const row={title:$('#t').value.trim(),occasion:$('#o').value,event_date:$('#d').value,host_name:$('#h').value.trim()||null,invited:+$('#n').value,deadline:$('#dl').value||null,deadline_at:$('#dl').value?zonedToIso($('#dl').value,$('#dt').value||'18:00',$('#tz').value):null,tz:$('#tz').value,venue:$('#vn').value.trim()||null,message:$('#ms').value.trim()||null,max_party:+$('#mp').value,default_time:hh*60+mm,end_at:et?zonedToIso($('#d').value,et,$('#tz').value):null,ask_meal:$('#am').value==='1',ask_arrival:$('#aa').value==='1',ask_note:$('#an').value==='1'};
+    const bad=!row.title?'Give the event a name.':!row.event_date?'Pick the date.':!(row.invited>=1)?'Enter how many guests you are inviting.':row.deadline&&row.deadline>row.event_date?'The RSVP deadline should be on or before the event date.':row.deadline_at&&!ev&&Date.parse(row.deadline_at)<=Date.now()?'That deadline has already passed. Pick a later time.':row.end_at&&et<=($('#tm').value||'19:00')?'The end time should be after the arrival time.':'';
     if(bad){m.hidden=false;m.textContent=bad;return}
     busy(b,1,'Saving...');
     try{
@@ -87,3 +88,4 @@ export function eventForm(ev){
 
 
 R.eventForm = eventForm;
+

@@ -14,6 +14,7 @@
 @keyframes rp{to{transform:translate(-50%,-50%) scale(26);opacity:0}}
 .dhead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:28px}.dhead h2{margin:0}
 .evgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.pasthead{margin:34px 0 16px}.closedline{margin:18px 0 8px}
 .evcard{cursor:pointer}.evcard:hover{transform:translateY(-6px)}.evcard h3{font-size:26px}
 .bar{height:6px;border-radius:6px;background:var(--soft);border:1px solid var(--line);overflow:hidden;margin:14px 0 10px}.bar i{display:block;height:100%;background:#000;border-radius:6px;transition:width 1s var(--ease)}.bar.big{height:12px}
 .evstat{display:flex;justify-content:space-between;font-size:14px;color:var(--mut)}.evstat b{color:#000}

@@ -1613,3 +1613,10 @@ begin
 end $$;
 
 select pg_notify('pgrst', 'reload schema');
+
+
+-- Migration 28: optional event end time. The host dashboard moves an event to
+-- Past events once its end time passes; events without one keep the next-day rule.
+alter table public.events add column if not exists end_at timestamptz;
+
+select pg_notify('pgrst', 'reload schema');
