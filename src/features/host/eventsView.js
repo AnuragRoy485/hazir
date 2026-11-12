@@ -16,7 +16,8 @@ export async function listView(){
     const u=auth.user(),first=((u.user_metadata&&u.user_metadata.name)||'').split(' ')[0];
     const today=new Date().toISOString().slice(0,10);
     const evDay=e=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:e.tz||undefined}).format(new Date())}catch(err){return today}};
-    const upcoming=evs.filter(e=>e.event_date>=evDay(e)),past=evs.filter(e=>e.event_date<evDay(e)).slice().reverse();
+    const isPast=e=>e.end_at?Date.parse(e.end_at)<=Date.now():e.event_date<evDay(e);
+    const upcoming=evs.filter(e=>!isPast(e)),past=evs.filter(isPast).slice().reverse();
     const card=(e,i)=>{const s=by[e.id]||{n:0,h:0},p=Math.min(100,Math.round(s.n/e.invited*100));return `<article class="card evcard reveal" style="--d:${i*.06}s" data-id="${e.id}" tabindex="0">
         <div class="tiny">${esc(e.occasion)}</div><h3>${esc(e.title)}</h3><p class="muted">${fmtDate(e.event_date)}</p>
         <div class="bar"><i style="width:${p}%"></i></div><div class="evstat"><span><b>${s.h}</b> coming</span><span><b>${s.n}</b> of ${e.invited} answered</span></div></article>`};
@@ -37,3 +38,4 @@ R.listView = listView;
 
 function nextUp(evs,today){const n=evs.find(e=>e.event_date>=today);if(!n)return '';const d=Math.round((new Date(n.event_date+'T00:00:00')-new Date(today+'T00:00:00'))/864e5);
   return `<div class="nextup"><small>NEXT UP</small><b>${esc(n.title)}</b><span>${d===0?'Today':d===1?'Tomorrow':'In '+d+' days'} &middot; ${fmtDate(n.event_date)}</span></div>`}
+
