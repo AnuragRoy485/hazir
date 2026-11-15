@@ -25,11 +25,14 @@ export async function listView(){
       ${evs.length?`<div class="vtoggle" role="tablist"><button class="vt on" data-v="list">List</button><button class="vt" data-v="cal">Calendar</button></div>${nextUp(upcoming,today)}<div id="calbox" hidden></div>
         ${upcoming.length?`<div class="evgrid" id="evlist">${upcoming.map(card).join('')}</div>`:`<div class="card empty reveal in" id="evlist"><h3>No upcoming events.</h3><p class="muted">Create a new event and share the link. Answers show up here the moment guests send them.</p></div>`}
         ${past.length?`<div id="pastlist"><p class="eyebrow pasthead">Past events</p><div class="evgrid">${past.map(card).join('')}</div></div>`:''}`
-      :`<div class="card empty reveal in"><h3>No events yet.</h3><p class="muted">Create your first event and share the link. Answers show up here the moment guests send them.</p><button class="btn" id="newEv2">Create your first event</button></div>`}
+      :`<div class="card empty reveal in"><h3>No events yet.</h3><p class="muted">Three steps stand between you and a live headcount:</p>
+      <ol class="checklist"><li><b>Create your event</b> - name, date and how many you invited.</li><li><b>Share one link</b> - on WhatsApp, or as a printed QR code.</li><li><b>Watch the headcount</b> - answers, plates and arrival times, live.</li></ol>
+      <div class="row"><button class="btn" id="newEv2">Create your first event</button><button class="btn btn-ghost" id="sampleEv">Try a sample event</button></div></div>`}
     </section>`);
     $$('.evcard').forEach(c=>{c.onclick=()=>R.openEvent(c.dataset.id);c.onkeydown=e=>{if(e.key==='Enter')R.openEvent(c.dataset.id)}});
     const vt=$$('.vt');vt.forEach(b=>b.onclick=()=>{vt.forEach(x=>x.classList.toggle('on',x===b));const c=b.dataset.v==='cal';$('#calbox').hidden=!c;$('#evlist').hidden=c;const pl=$('#pastlist');if(pl)pl.hidden=c;if(c)calendar($('#calbox'),evs,by)});
     const ne=$('#newEv'),ne2=$('#newEv2');ne.onclick=()=>R.eventForm();if(ne2)ne2.onclick=()=>R.eventForm();
+    const se=$('#sampleEv');if(se)se.onclick=()=>R.eventForm({title:'Aarav and Diya\u2019s wedding',occasion:'Wedding',event_date:new Date(Date.now()+7*864e5).toISOString().slice(0,10),host_name:((auth.user().user_metadata||{}).name)||'',invited:100,deadline:'',max_party:4,default_time:1140,tz:(Intl.DateTimeFormat().resolvedOptions().timeZone)||'Asia/Kolkata'});
   }catch(e){view(`<div class="card empty"><h3>Could not load events.</h3><p class="muted">${esc(niceErr(e))}</p><button class="btn" onclick="location.reload()">Try again</button></div>`)}
 }
 

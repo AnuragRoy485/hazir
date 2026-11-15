@@ -568,3 +568,10 @@ html.fx .pinhead-stage{min-height:100vh;display:flex;flex-direction:column;justi
 .dd--cc .dd-list li{display:flex;align-items:center;gap:10px;white-space:normal;line-height:1.35;overflow:visible;text-overflow:clip}
 .dd--cc .dd-list li[aria-selected="true"]::after{float:none;margin-left:auto}
 .dd--cc .dd-val{display:inline-flex;align-items:center;gap:8px}
+
+/* Quick wins (Nov 15): focus visibility and comfortable tap targets */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid #000;outline-offset:2px;border-radius:6px}
+.field input:focus,.field select:focus,.field .dd-btn:focus{outline:none}
+.yb{min-height:52px}
+.stepper button,.seg button{width:44px;height:44px}
+.chip{min-height:44px}

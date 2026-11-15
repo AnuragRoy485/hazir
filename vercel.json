@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node scripts/bump-assets.mjs && rm -rf public && mkdir public && cp -r *.html favicon.svg assets src public/",
+  "buildCommand": "node scripts/bump-assets.mjs && rm -rf public && mkdir public && cp -r *.html favicon.svg robots.txt sitemap.xml manifest.webmanifest assets src public/",
   "cleanUrls": true,
   "rewrites": [
     {

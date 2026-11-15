@@ -1,6 +1,6 @@
-export const MEALS = ['Veg', 'Non-veg', 'Jain', 'Vegan', 'Kids'];
+export const MEALS = ['Veg', 'Non-veg', 'Halal', 'Kosher', 'Jain', 'Vegan', 'Gluten-free', 'Nut allergy', 'Kids'];
 export const GROUPS = ['Family', 'Friends', 'Colleagues', 'Other'];
-export const OCCASIONS = ['Wedding', 'Birthday', 'Puja', 'Baby shower', 'Dinner', 'Corporate', 'Other'];
+export const OCCASIONS = ['Wedding', 'Engagement', 'Birthday', 'Anniversary', 'Baby shower', 'Graduation', 'Housewarming', 'Puja', 'Eid', 'Diwali', 'Christmas', 'Thanksgiving', 'Dinner', 'Reunion', 'Farewell', 'Corporate', 'Conference', 'Other'];
 
 export const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 /** Minutes since midnight to "6:30 PM". */

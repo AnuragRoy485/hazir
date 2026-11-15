@@ -103,12 +103,15 @@ import { MOTION } from './motion-config.js?v=20261108-1';
       const half = spans.length > 1 ? spans[spans.length / 2].offsetLeft - spans[0].offsetLeft : track.scrollWidth / 2;
       return { track, half: half || 1, x: 0, dir: r === 0 ? -1 : 1 };
     });
-    let vel = 0, boost = 0;
+    let vel = 0, boost = 0, inView = true;
+    // Skip the transform work entirely while the strip is off screen.
+    new IntersectionObserver(es => es.forEach(e => { inView = e.isIntersecting; }), { threshold: 0 }).observe($('.ticker'));
     ScrollTrigger.create({
       trigger: document.body, start: 0, end: 'max',
       onUpdate: self => { vel = self.getVelocity() * self.direction; },
     });
     gsap.ticker.add((t, dtMs) => {
+      if (!inView) { vel = 0; boost = 0; return; }
       const dt = Math.min(50, dtMs) / 1000;
       boost += (vel - boost) * MOTION.marquee.smooth;
       vel -= vel * Math.min(1, dt * 6);

@@ -4,11 +4,11 @@ import { xlsxDownload } from '../../../lib/xlsx.js?v=20261101-5';
 import { state } from '../ctx.js?v=20261101-5';
 import { stats } from './stats.js?v=20261101-5';
 
-function rows(){const s=stats(),L=[['Name','Status','Party','Adults','Kids','Group','Meal','Companions','Arrival','Checked in','Note','Phone','Email','Personal link']];
-  state.res.forEach(r=>{const inv=state.inv.find(i=>i.id===r.invitee_id);L.push([r.name,r.attending?'Coming':'Declined',r.party,r.attending?(r.adults!=null?r.adults:r.party):'',r.attending?(r.kids||0):'',r.grp||'',r.meal||'',(r.companions||[]).map(c=>(c.n&&c.n!=='Guest'?c.n:(c.k==='k'?'Kid':'Adult'))+' ('+(c.m||'')+')').join('; '),r.attending?fmtTime(r.arrival):'',r.checked_in?'Yes':'',r.note||'',r.phone||'',r.email||'',inv?guestLink(state.ev,inv.token):''])});
-  s.awaitingNames.forEach(i=>L.push([i.name,'Awaiting','','','','','','','','','','','',guestLink(state.ev,i.token)]));
+function rows(){const s=stats(),fns=(state.ev.functions||[]).filter(f=>f&&f.name);
+  const L=[['Name','Status','Party','Adults','Kids','Group','Meal','Companions','Arrival','Checked in','Note','Phone','Email',...fns.map(f=>'Fn: '+f.name),'Personal link']];
+  state.res.forEach(r=>{const inv=state.inv.find(i=>i.id===r.invitee_id);L.push([r.name,r.attending?'Coming':'Declined',r.party,r.attending?(r.adults!=null?r.adults:r.party):'',r.attending?(r.kids||0):'',r.grp||'',r.meal||'',(r.companions||[]).map(c=>(c.n&&c.n!=='Guest'?c.n:(c.k==='k'?'Kid':'Adult'))+' ('+(c.m||'')+')').join('; '),r.attending?fmtTime(r.arrival):'',r.checked_in?'Yes':'',r.note||'',r.phone||'',r.email||'',...fns.map(f=>r.attending?((r.function_answers&&r.function_answers[f.name]===false)?'No':'Yes'):''),inv?guestLink(state.ev,inv.token):''])});
+  s.awaitingNames.forEach(i=>L.push([i.name,'Awaiting','','','','','','','','','','','',...fns.map(()=>''),guestLink(state.ev,i.token)]));
   return L}
-
 const fname=ext=>state.ev.title.replace(/\W+/g,'-').toLowerCase()+'-guests.'+ext;
 
 export function csv(){const safe=v=>{v=String(v);if(/^[=+\-@]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};

@@ -1620,3 +1620,197 @@ select pg_notify('pgrst', 'reload schema');
 alter table public.events add column if not exists end_at timestamptz;
 
 select pg_notify('pgrst', 'reload schema');
+
+
+-- Migration 29: worldwide quick wins + bigger items (2026-11-15).
+--  - events.registry_url: optional gift-registry link shown on the invite (link only; no payments)
+--  - events.view_token: random key for the read-only caterer/planner summary page
+--  - events.functions: optional multi-function list, e.g. [{"name":"Sangeet","date":"2027-04-09","time":1080}]
+--  - responses.function_answers: per-function attendance, e.g. {"Sangeet":true,"Reception":false}
+-- All additive; older cached pages keep working unchanged.
+
+alter table public.events
+  add column if not exists registry_url text check (char_length(registry_url) <= 300),
+  add column if not exists view_token text not null default encode(gen_random_bytes(12), 'hex'),
+  add column if not exists functions jsonb;
+
+alter table public.responses add column if not exists function_answers jsonb;
+
+-- The invite now also returns the end time, registry link, functions and the guest's own
+-- per-function answers. Same privacy boundary as before: own answer only via edit token.
+create or replace function public.get_invite(p_event text, p_token text default null, p_edit text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare e events; inv invitees; done boolean := false; me responses;
+begin
+  select * into e from events where id = p_event;
+  if not found then return null; end if;
+  if p_token is not null then
+    select * into inv from invitees where event_id = e.id and token = p_token;
+    if found then select exists(select 1 from responses where invitee_id = inv.id) into done; end if;
+  end if;
+  -- A saved edit link returns that guest's own answer, and nothing about anyone else.
+  if p_edit is not null and p_edit <> '' then
+    select * into me from responses where event_id = e.id and edit_token = p_edit;
+    if found then done := true; end if;
+  end if;
+  return jsonb_build_object('id', e.id, 'title', e.title, 'occasion', e.occasion, 'date', e.event_date,
+    'host', e.host_name, 'deadline', e.deadline, 'deadline_at', e.deadline_at, 'tz', e.tz,
+    'venue', e.venue, 'message', e.message, 'max', e.max_party, 'time', e.default_time,
+    'banner', e.banner, 'banner_og', e.banner_og, 'end_at', e.end_at,
+    'registry_url', e.registry_url, 'functions', e.functions,
+    'ask_meal', e.ask_meal, 'ask_arrival', e.ask_arrival, 'ask_note', e.ask_note,
+    'invitee_name', coalesce(inv.name, me.name), 'answered', done, 'closed', public.rsvp_is_closed(e),
+    'my_attending', me.attending, 'my_party', me.party, 'my_adults', me.adults, 'my_kids', me.kids,
+    'my_grp', me.grp, 'my_meal', me.meal, 'my_arrival', me.arrival, 'my_comp', me.companions, 'my_note', me.note,
+    'my_functions', me.function_answers);
+end $$;
+
+-- 16-argument submit: per-function answers join the answer. Only function names the
+-- event actually has are stored, and only as booleans.
+create or replace function public.submit_rsvp(p_event text, p_token text, p_name text, p_attending boolean,
+  p_grp text, p_meal text, p_party int, p_arrival int, p_comp jsonb, p_note text, p_adults int, p_kids int, p_edit text,
+  p_phone text, p_email text, p_functions jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare e events; inv invitees; cnt int; v_ip text; hdr jsonb; n int; v_adults int; v_kids int; me responses; v_edit text; v_comp jsonb; v_fns jsonb;
+begin
+  select * into e from events where id = p_event;
+  if not found then raise exception 'Event not found'; end if;
+  if public.rsvp_is_closed(e) then raise exception 'RSVPs are closed'; end if;
+  if nullif(trim(coalesce(p_phone, '')), '') is null then raise exception 'Please enter your phone number.'; end if;
+  if nullif(trim(coalesce(p_email, '')), '') is null or p_email not like '%_@_%._%' then raise exception 'Please enter a valid email address.'; end if;
+  if p_token is not null and p_token <> '' then
+    select * into inv from invitees where event_id = e.id and token = p_token;
+    if not found then raise exception 'This invitation link is not valid'; end if;
+  end if;
+  if p_edit is not null and p_edit <> '' then
+    select * into me from responses where event_id = e.id and edit_token = p_edit;
+    if not found then raise exception 'This invitation link is not valid'; end if;
+  end if;
+
+  -- Abuse limits (best effort, see docs/SECURITY.md): per connection, per open link, per personal link.
+  begin hdr := nullif(current_setting('request.headers', true), '')::jsonb; exception when others then hdr := null; end;
+  -- Edge-set headers only: cf-connecting-ip (a spoofed copy is rejected by the edge), then sb-forwarded-for, then the LAST x-forwarded-for entry. Never the first entry, which callers can fake.
+  v_ip := md5(coalesce(nullif(trim(hdr->>'cf-connecting-ip'), ''), nullif(trim(hdr->>'sb-forwarded-for'), ''), nullif(trim(regexp_replace(coalesce(hdr->>'x-forwarded-for', ''), '^.*,', '')), ''), 'unknown'));
+  perform pg_advisory_xact_lock(hashtext('rsvp:' || e.id));
+  if random() < 0.05 then delete from rsvp_hits where at < now() - interval '2 hours'; end if;
+  select count(*) into n from rsvp_hits where event_id = e.id and ip = v_ip and at > now() - interval '10 minutes';
+  if n >= 150 then raise exception 'Too many answers from this connection. Please wait a few minutes and try again.'; end if;
+  if inv.id is null and me.id is null then
+    select count(*) into n from rsvp_hits where event_id = e.id and not has_token and at > now() - interval '10 minutes';
+    if n >= 300 then raise exception 'This event is getting a lot of answers right now. Please try again shortly.'; end if;
+  else
+    select count(*) into n from rsvp_hits where event_id = e.id and token = coalesce(inv.token, p_edit) and at > now() - interval '10 minutes';
+    if n >= 8 then raise exception 'You have changed this answer many times. Please wait a few minutes.'; end if;
+  end if;
+  insert into rsvp_hits(event_id, ip, has_token, token) values (e.id, v_ip, inv.id is not null or me.id is not null, coalesce(inv.token, p_edit));
+
+  select count(*) into cnt from responses where event_id = e.id;
+  if cnt >= 6000 then raise exception 'This event is full'; end if;
+  -- Adults at least 1 when attending; kids trimmed first if the party passes the host's limit.
+  v_adults := case when p_attending then least(e.max_party, 10, greatest(1, coalesce(p_adults, p_party, 1))) else 0 end;
+  v_kids := case when p_attending then least(10, greatest(0, coalesce(p_kids, 0))) else 0 end;
+  if p_attending and v_adults + v_kids > e.max_party then v_kids := e.max_party - v_adults; end if;
+  -- Host switches: hidden questions are not collected, but earlier answers stay stored.
+  v_comp := case when jsonb_typeof(p_comp) = 'array' then p_comp else '[]'::jsonb end;
+  if not e.ask_meal then
+    select coalesce(jsonb_agg(c - 'm'), '[]'::jsonb) into v_comp from jsonb_array_elements(v_comp) c;
+  end if;
+  -- Per-function answers: only for functions the event really has, booleans only.
+  v_fns := null;
+  if e.functions is not null and jsonb_typeof(e.functions) = 'array' and jsonb_typeof(p_functions) = 'object' then
+    select coalesce(jsonb_object_agg(nm, (p_functions->>nm)::boolean), '{}'::jsonb) into v_fns
+    from (select f->>'name' as nm from jsonb_array_elements(e.functions) f where p_functions ? (f->>'name')) x;
+  end if;
+  if inv.id is not null then delete from responses where invitee_id = inv.id; end if;
+  if me.id is not null then delete from responses where id = me.id; end if;
+  insert into responses(event_id, invitee_id, name, attending, grp, meal, party, adults, kids, arrival, companions, note, phone, email, function_answers)
+  values (e.id, inv.id, left(coalesce(nullif(trim(p_name), ''), inv.name, me.name, 'Guest'), 40), p_attending,
+    left(p_grp, 20), case when e.ask_meal then left(p_meal, 20) else null end,
+    case when p_attending then v_adults + v_kids else 0 end, v_adults, v_kids,
+    case when p_attending and e.ask_arrival then p_arrival else null end,
+    v_comp, case when e.ask_note then left(p_note, 120) else null end,
+    left(trim(p_phone), 40), left(trim(p_email), 80),
+    case when p_attending then v_fns else null end)
+  returning edit_token into v_edit;
+  return jsonb_build_object('ok', true, 'edit', v_edit);
+end $$;
+
+-- The 15-argument shape (pages cached before this migration) wraps the new one with
+-- no function answers, so a mid-session guest never loses their answer.
+create or replace function public.submit_rsvp(p_event text, p_token text, p_name text, p_attending boolean,
+  p_grp text, p_meal text, p_party int, p_arrival int, p_comp jsonb, p_note text, p_adults int, p_kids int, p_edit text,
+  p_phone text, p_email text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  return public.submit_rsvp(p_event, p_token, p_name, p_attending, p_grp, p_meal, p_party, p_arrival, p_comp, p_note,
+    p_adults, p_kids, p_edit, p_phone, p_email, null);
+end $$;
+
+-- Guests delete their own answer with the private edit token from their saved RSVP link.
+create or replace function public.delete_my_rsvp(p_event text, p_edit text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  if p_edit is null or p_edit = '' then raise exception 'This link cannot delete an answer.'; end if;
+  delete from public.responses where event_id = p_event and edit_token = p_edit;
+  get diagnostics n = row_count;
+  if n = 0 then raise exception 'No answer found for this link.'; end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- Read-only live summary for caterers and planners: counts only, never a name,
+-- phone, email or note. The link carries its own random key (events.view_token).
+create or replace function public.get_event_summary(p_event text, p_key text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare e events; v_meals jsonb; v_arrivals jsonb; v_fns jsonb;
+  v_answered int; v_coming int; v_declined int; v_heads int; v_adults int; v_kids int;
+begin
+  select * into e from events where id = p_event and view_token = p_key;
+  if not found then return null; end if;
+  select count(*), count(*) filter (where attending), count(*) filter (where not attending),
+    coalesce(sum(party) filter (where attending), 0),
+    coalesce(sum(adults) filter (where attending), 0),
+    coalesce(sum(kids) filter (where attending), 0)
+    into v_answered, v_coming, v_declined, v_heads, v_adults, v_kids
+  from public.responses where event_id = e.id;
+  with m as (
+    select r.meal as meal from public.responses r where r.event_id = e.id and r.attending and r.meal is not null
+    union all
+    select c->>'m' from public.responses r, jsonb_array_elements(r.companions) c
+      where r.event_id = e.id and r.attending and c->>'m' is not null
+  ) select coalesce(jsonb_object_agg(meal, n), '{}'::jsonb) into v_meals from (select meal, count(*) as n from m group by meal) x;
+  select coalesce(jsonb_object_agg(h::text, n), '{}'::jsonb) into v_arrivals from (
+    select arrival / 60 as h, sum(party) as n from public.responses
+    where event_id = e.id and attending and arrival is not null group by 1) a;
+  if e.functions is not null and jsonb_typeof(e.functions) = 'array' then
+    select coalesce(jsonb_agg(jsonb_build_object(
+      'name', f->>'name', 'date', f->>'date', 'time', (f->>'time')::int,
+      'heads', coalesce((select sum(r.party) from public.responses r
+        where r.event_id = e.id and r.attending and coalesce((r.function_answers->>(f->>'name'))::boolean, true)), 0),
+      'meals', coalesce((select jsonb_object_agg(meal, n) from (
+          select meal, count(*) as n from (
+            select r.meal as meal from public.responses r
+              where r.event_id = e.id and r.attending and coalesce((r.function_answers->>(f->>'name'))::boolean, true) and r.meal is not null
+            union all
+            select c->>'m' from public.responses r, jsonb_array_elements(r.companions) c
+              where r.event_id = e.id and r.attending and coalesce((r.function_answers->>(f->>'name'))::boolean, true) and c->>'m' is not null
+          ) mm group by meal) mx), '{}'::jsonb)
+    )), '[]'::jsonb) into v_fns from jsonb_array_elements(e.functions) f;
+  else
+    v_fns := '[]'::jsonb;
+  end if;
+  return jsonb_build_object(
+    'title', e.title, 'occasion', e.occasion, 'date', e.event_date, 'time', e.default_time, 'tz', e.tz,
+    'venue', e.venue, 'host', e.host_name, 'invited', e.invited,
+    'answered', v_answered, 'coming', v_coming, 'declined', v_declined,
+    'heads', v_heads, 'adults', v_adults, 'kids', v_kids,
+    'meals', v_meals, 'arrivals', v_arrivals, 'functions', coalesce(v_fns, '[]'::jsonb));
+end $$;
+
+revoke all on function public.submit_rsvp(text, text, text, boolean, text, text, int, int, jsonb, text, int, int, text, text, text, jsonb),
+  public.delete_my_rsvp(text, text), public.get_event_summary(text, text) from public;
+grant execute on function public.submit_rsvp(text, text, text, boolean, text, text, int, int, jsonb, text, int, int, text, text, text, jsonb),
+  public.delete_my_rsvp(text, text), public.get_event_summary(text, text) to anon, authenticated;
+grant execute on function public.submit_rsvp(text, text, text, boolean, text, text, int, int, jsonb, text, int, int, text, text, text) to anon, authenticated;
+
+select pg_notify('pgrst', 'reload schema');

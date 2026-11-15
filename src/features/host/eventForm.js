@@ -8,9 +8,12 @@ import { view, busy, niceErr } from './ctx.js?v=20261101-5';
 import { R } from './ctx.js?v=20261101-5';
 
 export function eventForm(ev){
-  const e=ev||{title:'',occasion:'Wedding',event_date:'',host_name:((auth.user().user_metadata||{}).name)||'',invited:100,deadline:'',max_party:4,default_time:1140,tz:browserTz()};
+  // ev with an id edits that event; ev without an id is a prefilled new event
+  // (the dashboard's "Try a sample event" button uses this).
+  const editing=!!(ev&&ev.id);
+  const e=editing?ev:{title:'',occasion:'Wedding',event_date:'',host_name:((auth.user().user_metadata||{}).name)||'',invited:100,deadline:'',max_party:4,default_time:1140,tz:browserTz(),...(ev||{})};
   const dz=e.deadline_at?isoToZoned(e.deadline_at,e.tz):{date:'',time:'18:00'};const et0=e.end_at?isoToZoned(e.end_at,e.tz).time:'';const zs=[...new Set([e.tz,...TZS])];
-  view(`<section class="formwrap"><button class="back" id="bk">&larr; Back</button><div class="card reveal in"><p class="eyebrow">${ev?'Edit event':'New event'}</p><h2>${ev?'Edit details.':'Tell us the occasion.'}</h2>
+  view(`<section class="formwrap"><button class="back" id="bk">&larr; Back</button><div class="card reveal in"><p class="eyebrow">${editing?'Edit event':'New event'}</p><h2>${editing?'Edit details.':'Tell us the occasion.'}</h2>
   <form id="ef" novalidate>
     <label class="field">Event name<input id="t" maxlength="80" required value="${esc(e.title)}" placeholder="Riya and Arjun's wedding"></label>
     <div class="two"><label class="field">Occasion<select id="o">${OCCASIONS.map(x=>`<option${x===e.occasion?' selected':''}>${x}</option>`).join('')}</select></label>
@@ -30,14 +33,19 @@ export function eventForm(ev){
     <label class="field">Message to guests (optional)<textarea id="ms" rows="3" placeholder="Dress code, parking, a note of welcome...">${esc(e.message||'')}</textarea></label>
     <div class="two"><label class="field">Usual arrival time<input id="tm" type="time" value="${String(Math.floor(e.default_time/60)).padStart(2,'0')}:${String(e.default_time%60).padStart(2,'0')}"></label><label class="field">End time (optional)<input id="et" type="time" value="${et0}"></label></div>
     <p class="fine">Once the end time passes, the event moves to Past events on your dashboard.</p>
+    <div class="fnedit"><p class="flabel">Multiple functions? (optional)</p>
+    <p class="fine" style="margin-top:2px">For weddings and multi-part events: one invite link, guests answer per function, and every function gets its own counts for the caterer.</p>
+    <div id="fnrows"></div><button type="button" class="btn btn-ghost btn-sm" id="fnadd">+ Add a function</button></div>
+    <label class="field">Gift registry link (optional)<input id="rg" type="url" maxlength="300" value="${esc(e.registry_url||'')}" placeholder="https://..."></label>
+    <p class="fine" style="margin-top:2px">Shown as a small button on your invite. It is only a link - Hazir never touches payments.</p>
     <div class="two"><label class="field">Meal choices<select id="am"><option value="1"${e.ask_meal!==false?' selected':''}>Ask</option><option value="0"${e.ask_meal===false?' selected':''}>Skip</option></select></label><label class="field">Arrival time<select id="aa"><option value="1"${e.ask_arrival!==false?' selected':''}>Ask</option><option value="0"${e.ask_arrival===false?' selected':''}>Skip</option></select></label></div>
     <label class="field">Note for the host<select id="an"><option value="1"${e.ask_note!==false?' selected':''}>Ask</option><option value="0"${e.ask_note===false?' selected':''}>Skip</option></select></label>
     <p class="fine">Skip a question to hide it on the invite. Answers guests already gave stay saved, and they come back if you switch the question on again.</p>
-    ${ev?'':'<label class="field">Guest names, one per line (optional)<textarea id="l" rows="5" placeholder="Aarav Mehta&#10;Diya Rao&#10;Kabir Sen"></textarea></label><p class="fine">With names, every guest gets their own personal link, and you can see exactly who has not answered yet.</p>'}
+    ${editing?'':'<label class="field">Guest names, one per line (optional)<textarea id="l" rows="5" placeholder="Aarav Mehta&#10;Diya Rao&#10;Kabir Sen"></textarea></label><p class="fine">With names, every guest gets their own personal link, and you can see exactly who has not answered yet.</p>'}
     <div class="msg" id="msg" hidden></div>
-    <button class="btn full" id="sv">${ev?'Save changes':'Create event'}</button>
+    <button class="btn full" id="sv">${editing?'Save changes':'Create event'}</button>
   </form></div></section>`);
-  $('#bk').onclick=()=>ev?R.openEvent(ev.id):R.listView();
+  $('#bk').onclick=()=>editing?R.openEvent(ev.id):R.listView();
   let bfile=null,rmPending=false;
   const bni=$('#bn'),bimg=$('#bnimg'),bph=$('#bnph'),bact=$('#bnact'),bbox=$('#bnbox');
   const syncBn=()=>{
@@ -62,20 +70,30 @@ export function eventForm(ev){
     if(!cropped){bni.value='';return}
     rmPending=false;const r=new FileReader();r.onload=()=>{bimg.src=r.result;bfile=cropped;syncBn()};r.readAsDataURL(cropped)};
   syncBn();
+  // Functions editor: up to 6 named functions, each with its own date and time.
+  let fns=(e.functions||[]).filter(f=>f&&f.name).map(f=>({name:f.name,date:f.date||'',time:f.time!=null?String(Math.floor(f.time/60)).padStart(2,'0')+':'+String(f.time%60).padStart(2,'0'):''}));
+  const fnrows=$('#fnrows');
+  const drawFns=()=>{fnrows.innerHTML=fns.map((f,i)=>`<div class="fneditrow"><input data-f="name" data-i="${i}" maxlength="40" placeholder="Function name (Sangeet, Reception...)" value="${esc(f.name)}" aria-label="Function name"><input data-f="date" data-i="${i}" type="date" value="${f.date}" aria-label="Function date"><input data-f="time" data-i="${i}" type="time" value="${f.time}" aria-label="Function time"><button type="button" class="mini x" data-fx="${i}" aria-label="Remove function">&times;</button></div>`).join('');
+    fnrows.querySelectorAll('input').forEach(inp=>inp.oninput=()=>{fns[+inp.dataset.i][inp.dataset.f]=inp.value});
+    fnrows.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{fns.splice(+b.dataset.fx,1);drawFns()});
+    $('#fnadd').disabled=fns.length>=6};
+  $('#fnadd').onclick=()=>{if(fns.length<6){fns.push({name:'',date:$('#d').value||'',time:$('#tm').value||'19:00'});drawFns()}};
+  drawFns();
+  const fnList=()=>fns.map(f=>({name:(f.name||'').trim().slice(0,40),date:f.date||null,time:f.time?(+f.time.slice(0,2))*60+(+f.time.slice(3,5)):null})).filter(f=>f.name);
   const saveBanner=async(id,row)=>{
     const card={title:row.title,when:fmtDate(row.event_date)+' \u00b7 '+fmtTime(row.default_time),host:row.host_name};
-    if(bfile){const urls=await uploadBanner(id,bfile);await db('events?id=eq.'+id,{method:'PATCH',body:urls,prefer:'return=minimal'});if(ev&&ev.banner)cleanupOldBanner(ev.id,ev.banner,urls.banner)}
-    else if(ev&&ev.banner&&rmPending){const og=await uploadFallbackOg(id,card);await db('events?id=eq.'+id,{method:'PATCH',body:{banner:null,banner_og:og.banner_og},prefer:'return=minimal'});cleanupOldBanner(ev.id,ev.banner,null)}
+    if(bfile){const urls=await uploadBanner(id,bfile);await db('events?id=eq.'+id,{method:'PATCH',body:urls,prefer:'return=minimal'});if(editing&&ev.banner)cleanupOldBanner(ev.id,ev.banner,urls.banner)}
+    else if(editing&&ev.banner&&rmPending){const og=await uploadFallbackOg(id,card);await db('events?id=eq.'+id,{method:'PATCH',body:{banner:null,banner_og:og.banner_og},prefer:'return=minimal'});cleanupOldBanner(ev.id,ev.banner,null)}
     else if(!e.banner){const og=await uploadFallbackOg(id,card);await db('events?id=eq.'+id,{method:'PATCH',body:{banner_og:og.banner_og},prefer:'return=minimal'})}
   };
   $('#ef').onsubmit=async x=>{x.preventDefault();const b=$('#sv'),m=$('#msg');
     const [hh,mm]=($('#tm').value||'19:00').split(':').map(Number);const et=$('#et').value;
-    const row={title:$('#t').value.trim(),occasion:$('#o').value,event_date:$('#d').value,host_name:$('#h').value.trim()||null,invited:+$('#n').value,deadline:$('#dl').value||null,deadline_at:$('#dl').value?zonedToIso($('#dl').value,$('#dt').value||'18:00',$('#tz').value):null,tz:$('#tz').value,venue:$('#vn').value.trim()||null,message:$('#ms').value.trim()||null,max_party:+$('#mp').value,default_time:hh*60+mm,end_at:et?zonedToIso($('#d').value,et,$('#tz').value):null,ask_meal:$('#am').value==='1',ask_arrival:$('#aa').value==='1',ask_note:$('#an').value==='1'};
-    const bad=!row.title?'Give the event a name.':!row.event_date?'Pick the date.':!(row.invited>=1)?'Enter how many guests you are inviting.':row.deadline&&row.deadline>row.event_date?'The RSVP deadline should be on or before the event date.':row.deadline_at&&!ev&&Date.parse(row.deadline_at)<=Date.now()?'That deadline has already passed. Pick a later time.':row.end_at&&et<=($('#tm').value||'19:00')?'The end time should be after the arrival time.':'';
+    const row={title:$('#t').value.trim(),occasion:$('#o').value,event_date:$('#d').value,host_name:$('#h').value.trim()||null,invited:+$('#n').value,deadline:$('#dl').value||null,deadline_at:$('#dl').value?zonedToIso($('#dl').value,$('#dt').value||'18:00',$('#tz').value):null,tz:$('#tz').value,venue:$('#vn').value.trim()||null,message:$('#ms').value.trim()||null,max_party:+$('#mp').value,default_time:hh*60+mm,end_at:et?zonedToIso($('#d').value,et,$('#tz').value):null,ask_meal:$('#am').value==='1',ask_arrival:$('#aa').value==='1',ask_note:$('#an').value==='1',registry_url:($('#rg').value.trim()||null),functions:fnList().length?fnList():null};
+    const bad=!row.title?'Give the event a name.':!row.event_date?'Pick the date.':!(row.invited>=1)?'Enter how many guests you are inviting.':row.deadline&&row.deadline>row.event_date?'The RSVP deadline should be on or before the event date.':row.deadline_at&&!ev&&Date.parse(row.deadline_at)<=Date.now()?'That deadline has already passed. Pick a later time.':row.end_at&&et<=($('#tm').value||'19:00')?'The end time should be after the arrival time.':row.registry_url&&!/^https:\/\//i.test(row.registry_url)?'The gift registry link should start with https://':'';
     if(bad){m.hidden=false;m.textContent=bad;return}
     busy(b,1,'Saving...');
     try{
-      if(ev){await db('events?id=eq.'+ev.id,{method:'PATCH',body:row});
+      if(editing){await db('events?id=eq.'+ev.id,{method:'PATCH',body:row});
         try{await saveBanner(ev.id,row)}catch(err){toast('Details saved, but the banner failed: '+niceErr(err),1)}
         toast('Saved');R.openEvent(ev.id)}
       else{const [c]=await db('events',{method:'POST',body:row});

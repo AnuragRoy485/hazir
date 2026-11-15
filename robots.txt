@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /admin
+Disallow: /rsvp
+Disallow: /view
+Disallow: /reset
+
+Sitemap: https://www.hazir.live/sitemap.xml

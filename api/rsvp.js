@@ -42,7 +42,8 @@ export default async function handler(req, res) {
     const tags = [
       '<meta property="og:type" content="website">',
       '<meta property="og:site_name" content="Hazir">',
-      `<meta property="og:title" content="${esc(ev.title)}">`,
+      `<meta property="og:url" content="https://www.hazir.live/rsvp?e=${e}">`,
+      `<meta property="og:title" content="${esc(ev.title + (when ? ' - ' + when : ''))}">`,
       `<meta property="og:description" content="${esc(desc)}">`,
       ev.banner_og ? `<meta property="og:image" content="${esc(ev.banner_og)}">` : '',
       ev.banner_og ? '<meta property="og:image:width" content="1200">' : '',

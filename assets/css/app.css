@@ -174,3 +174,29 @@ input[type="checkbox"]{width:16px;height:16px;accent-color:#000;cursor:pointer}
 .fromwrap{display:block;min-width:0;max-width:100%}
 .tbl.cardsm td .fromwrap{text-align:right}
 .fromwrap a{word-break:break-all}
+
+/* Quick wins (Nov 15): language switcher, functions, calendar row, checklist, caterer view */
+.langsw{display:flex;gap:6px;justify-content:flex-end;margin-bottom:14px}
+.lng{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;transition:all .2s}
+.lng.on{background:#000;color:#fff;border-color:#000}
+.fns{margin:6px 0 4px}
+.flabel{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:8px}
+.fnrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.fnrow:last-child{border-bottom:0}
+.fnname{font-size:16px}.fnname small{color:var(--mut)}
+.fnt{display:flex;gap:6px}
+.fnb{border:1px solid #000;background:#fff;border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer;min-height:44px;transition:all .2s}
+.fnb.on{background:#000;color:#fff}
+.addcal{margin:18px 0 4px;font-size:15px}
+.calrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:6px}
+.checklist{margin:14px 0 20px;padding-left:22px;text-align:left}
+.checklist li{margin:8px 0}
+.fnedit{margin-top:22px}
+.fneditrow{display:grid;grid-template-columns:1fr 150px 110px 34px;gap:8px;margin:8px 0;align-items:center}
+.fneditrow input{border:0;border-bottom:1.5px solid #000;padding:10px 4px;font-size:15px;outline:none;background:transparent}
+.mini{border:1px solid #000;background:#fff;border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;min-height:34px}
+.mini.x{border-radius:50%;width:34px;padding:0;font-size:16px}
+.fnblock{padding:12px 0;border-bottom:1px solid var(--line)}
+.fnblock:last-child{border-bottom:0}
+.fnhead{font-size:16px;margin-bottom:6px}
+@media (max-width:640px){.fneditrow{grid-template-columns:1fr 110px;grid-auto-rows:auto}.fneditrow input[aria-label="Function name"]{grid-column:1/-1}}

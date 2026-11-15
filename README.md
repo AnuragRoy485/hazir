@@ -29,6 +29,9 @@ Host (signed in with email and password):
 - Guests table: search, filter (coming, declined, awaiting, checked in), check-in toggle, remove, add names, add a walk-in or phone RSVP, CSV export (spreadsheet formula safe).
 - Invites: open invite link, personal links, WhatsApp share and nudge buttons (they open WhatsApp with a prepared message, nothing is sent for you), copy all reminders.
 - Day-of door list ordered by arrival time with a live arrived counter.
+- Multi-function events: one invite link, guests answer per function (Sangeet, ceremony, reception...), with separate counts and meal totals per function on the dashboard, in exports and in the caterer view.
+- Caterer / planner view: a read-only live summary link per event (headcount, plates, meals, arrivals - never names or contacts), refreshing every 30 seconds.
+- Gift registry link on the invite (link only, no payments).
 
 Guest (no account):
 
@@ -36,6 +39,8 @@ Guest (no account):
 - After answering, the guest gets a saveable personal link ("Plans change. Keep your RSVP handy.") that reopens their own answer - and only theirs - to change it later.
 - Personal links lock the answer to that guest and let them change it later. Answers close at the exact deadline time, enforced by the database, and guest answers have basic abuse limits (see docs/SECURITY.md).
 - A guest can only see the event title, date, host name and deadline. Never other guests, meals or answers.
+- The RSVP page speaks English, Hindi and Bengali. After answering, guests can add the event to Google or Apple Calendar, and update or delete their own answer from their saved link.
+- Installable (PWA manifest + icons), with sitemap, robots.txt and JSON-LD for search.
 
 Landing page: the story, how it works, a sample dashboard with made-up guests (stored only in your browser), and a Contact us form. Contact messages are stored in the database and read in the super-admin dashboard (migration 21); the table itself is never exposed, submission goes through the locked `submit_contact` function with abuse limits.
 
@@ -94,6 +99,12 @@ The test creates two throwaway host accounts and an event, answers it from a sep
 
 - Free hosting tiers have limits and some are for non-commercial use only. Check your host's terms before running a paid service on it.
 - Hazir sends no messages. WhatsApp buttons open WhatsApp with a prefilled text for you to send.
+
+## Community
+
+- [Changelog](CHANGELOG.md) - what shipped, when.
+- [Contributing](CONTRIBUTING.md) - ground rules, setup, good first issues.
+- User guide: [hazir.live/docs](https://www.hazir.live/docs)
 
 ## License
 

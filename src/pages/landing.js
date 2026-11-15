@@ -42,7 +42,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)dotsStop();
 
 // ---------- shared helpers
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const MEALS=['Veg','Non-veg','Jain','Vegan','Kids'],GROUPS=['Family','Friends','Colleagues','Other'];
+const MEALS=['Veg','Non-veg','Halal','Kosher','Jain','Vegan','Gluten-free','Nut allergy','Kids'],GROUPS=['Family','Friends','Colleagues','Other'];
 const opt=(a,v)=>a.map(x=>`<option${x===v?' selected':''}>${x}</option>`).join('');
 const svgTicks=g=>{for(let i=0;i<12;i++){const a=i*30*Math.PI/180,r1=i%3?82:76,r2=88;const l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',100+r1*Math.sin(a));l.setAttribute('y1',100-r1*Math.cos(a));l.setAttribute('x2',100+r2*Math.sin(a));l.setAttribute('y2',100-r2*Math.cos(a));l.setAttribute('stroke','#000');l.setAttribute('stroke-width',i%3?1:2.5);g.append(l)}};
 const fmt=m=>{let h=Math.floor(m/60)%24,mi=m%60;const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+String(mi).padStart(2,'0')+' '+ap};
@@ -137,7 +137,7 @@ const OCC={
  Corporate:{n:'Annual offsite dinner',o:'Corporate',t:80,time:20*60,max:2,sub:'Dinner for the whole team.'}
 };
 const names=['Aarav','Diya','Kabir','Ananya','Vihaan','Ira','Reyansh','Meera','Arnav','Saanvi','Zoya','Rohan'];
-function seed(ev){const out=[],yes=Math.round(ev.t*.45),no=Math.round(ev.t*.08);for(let i=0;i<yes+no;i++){const g=i<yes,p=g?(i%4===0?2:1):0;out.push({id:'s'+i,n:names[i%12]+' '+String.fromCharCode(65+i%26),y:g,g:GROUPS[i%4],p,t:g?ev.time+[-60,-30,0,0,15,30,30,45,60,90][i%10]:0,m:g?MEALS[(i%7===0)?2:(i%3===0)?1:0]:'',c:g&&p>1?[{n:'Guest',m:'Veg'}]:[],ts:0})}return out}
+function seed(ev){const out=[],yes=Math.round(ev.t*.45),no=Math.round(ev.t*.08);for(let i=0;i<yes+no;i++){const g=i<yes,p=g?(i%4===0?2:1):0;out.push({id:'s'+i,n:names[i%12]+' '+String.fromCharCode(65+i%26),y:g,g:GROUPS[i%4],p,t:g?ev.time+[-60,-30,0,0,15,30,30,45,60,90][i%10]:0,m:g?['Veg','Non-veg','Jain'][(i%7===0)?2:(i%3===0)?1:0]:'',c:g&&p>1?[{n:'Guest',m:'Veg'}]:[],ts:0})}return out}
 const chips=$('#occChips');let occ='Wedding';
 Object.keys(OCC).forEach(o=>{const b=document.createElement('button');b.className='chip';b.textContent=o;b.onclick=()=>setOcc(o);chips.append(b)});
 function setOcc(o){occ=o;$$('.chip').forEach(c=>c.classList.toggle('on',c.textContent===o));const ev=OCC[o],st=store('demo-'+o);if(!st.get().length)st.set(seed(ev));let bd;
