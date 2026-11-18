@@ -575,3 +575,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .yb{min-height:52px}
 .stepper button,.seg button{width:44px;height:44px}
 .chip{min-height:44px}
+
+/* Counters: equal-width digits and isolated paint so ticking numbers never shift layout or repaint neighbours */
+[data-count],#heroConfirmed,#heroPending{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.hero-visual b,.hero-visual small{contain:paint}
