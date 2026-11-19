@@ -67,8 +67,8 @@ try {
   const pageText = await text(g.page, 'body');
   ok('guest page does not expose other guests or host controls', !/Vikram|Check in|Export/.test(pageText));
   await g.page.click("#kpl"); await g.page.type('[data-ci="0"]', 'Meera Rao');
-  await g.page.type('#nt', 'Window seat please'); await g.page.click('#sb');
-  await g.page.waitForSelector('.rsvpdone', { timeout: 15000 });
+  await g.page.type('#ph', '2025550143'); await g.page.type('#em', 'hazir-e2e-guest@example.com'); await g.page.type('#nt', 'Window seat please'); await g.page.click('#sb');
+  await g.page.waitForSelector('.rsvpdone', { timeout: 15000 }).catch(async e => { console.log('DEBUG', (await text(g.page, 'body')).slice(-500)); await g.page.screenshot({ path: '/tmp/dbg.png' }); throw e; });
   ok('guest RSVP submitted from a separate session', true);
 
   // Host A sees it live (reload dashboard)
